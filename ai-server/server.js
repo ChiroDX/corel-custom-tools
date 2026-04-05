@@ -1,57 +1,51 @@
 import express from "express";
+import cors from "cors";
 import { config } from "dotenv";
-import OpenAI from "openai";
+import textRoutes from "./routes/text.js";
+import imageRoutes from "./routes/image.js";
+import { cleanupOldTempFiles } from "./utils/tempFiles.js";
 
 config();
 
-const prompt = `
-Korrigiere folgenden Text nach Fehlern. Gib das Resultat in einem Codefenster wieder und füge am Ende jeder Zeile einen Zeilenumbruch hinzu.
-
-Setzte folgende Formatierung ein:
-- alle mehrfachen Leerzeichen löschen
-- nach der Menü Nummer ein Tabulator Zeichen,
-- zwischen Menü Name und Allergen ein Leerzeichen
-- formatiere die Allergen Hinweise in Superscript separiert mit einem Komma 
-- füge Tabulatoren zwischen den Preisen
-- füge ein Zeilenumbruch nach der letzen Zeile
-
-Hier ist ein Beispiel:
-
-Hühnerfleischgerichte mit verschiedenem Gemüse:
-21.	Sojasoße und Chilli 1,3,6,11	9,00€	12,00€
-22.	Sojasoße und Chilli 1,3,6,11	9,00€	12,00€
-
-Hier ist der zu bearbeitende Text: `;
-
 const app = express();
-const port = 3000;
+const PORT = process.env.PORT || 3000;
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+app.use(cors());
+app.use(express.json({ limit: "10mb" })); // larger limit for base64 image payloads
+
+// ── Health check ────────────────────────────────────────────
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    version: "2.0.0",
+    name: "ChiroDX AI Server",
+    models: ["gpt-4o", "gpt-4o-mini", "claude-haiku", "ollama"],
+    endpoints: [
+      "POST /text/grammar",
+      "POST /text/completeness",
+      "POST /text/translate",
+      "POST /text/price-format",
+      "POST /text/font-pairing",
+      "POST /image/generate",
+      "POST /image/color-palette",
+      "POST /image/color-palette-generate",
+    ],
+  });
 });
 
-app.use(express.json());
+// ── Routes ──────────────────────────────────────────────────
+app.use("/text", textRoutes);
+app.use("/image", imageRoutes);
 
-app.post("/correct-text", async (req, res) => {
-  console.log(req.body);
-  try {
-    const { text } = req.body;
-    const chatCompletion = await openai.chat.completions.create({
-      messages: [
-        {
-          role: "user",
-          content: `${prompt} ${text}`,
-        },
-      ],
-      model: "gpt-4o",
-    });
-    res.json({ correctedText: chatCompletion.choices[0].message.content });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error processing the request");
-  }
+// ── Global error handler ────────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error("[Error]", err.message);
+  res.status(500).json({ ok: false, error: err.message });
 });
 
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+// ── Start ────────────────────────────────────────────────────
+app.listen(PORT, () => {
+  console.log(`\nChiroDX AI Server v2.0 running on http://localhost:${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/health\n`);
+  cleanupOldTempFiles(); // clean up leftover images on start
 });
