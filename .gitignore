@@ -1,0 +1,15 @@
+# Environment variables - NEVER commit these
+.env
+ai-server/.env
+
+# Node dependencies
+node_modules/
+ai-server/node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
