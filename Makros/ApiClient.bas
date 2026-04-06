@@ -8,10 +8,11 @@ Option Explicit
 ' and provides lightweight JSON parsing helpers.
 '
 ' HOW TO USE:
-'   1. Import this .bas file into your CorelDraw VBA project
-'      (File > Import File in the VBA editor)
-'   2. Import ToolsPanel.frm the same way
-'   3. Run ShowToolsPanel to open the panel
+'   1. Press Alt+F11 in CorelDraw to open the VBA Editor
+'   2. In the Project Explorer, select your GMS project (e.g. GlobalMacros)
+'   3. File > Import File — import this .bas file
+'   4. File > Import File — import ToolsPanel.frm
+'   5. Close the editor. AutoExec runs on next CorelDraw start.
 ' ============================================================
 
 ' ── Configuration ───────────────────────────────────────────

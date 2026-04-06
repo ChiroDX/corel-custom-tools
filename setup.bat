@@ -84,31 +84,10 @@ if not exist "%CONFIG_DIR%" mkdir "%CONFIG_DIR%"
 
 echo  [OK] Config saved to: %CONFIG_FILE%
 
-:: ── Step 5: Register Windows Task Scheduler job ──────────
-echo.
-echo  Registering auto-start task...
-
-:: Build the command that Task Scheduler will run
-:: Uses /min to start minimized and cmd /c to run node hidden
+:: ── Step 5: Create a VBS launcher (hidden window) ────────
+:: We use a small VBS wrapper so node runs truly hidden
+:: (no black terminal window flashing on login)
 set "TASK_NAME=ChiroDX AI Server"
-set "TASK_CMD=cmd /c cd /d "%SERVER_DIR%" && node server.js"
-
-:: Delete existing task if present (ignore errors)
-schtasks /Delete /TN "%TASK_NAME%" /F >nul 2>nul
-
-:: Create new task: runs on user logon, hidden window
-schtasks /Create /TN "%TASK_NAME%" /TR "\"%TASK_CMD%\"" /SC ONLOGON /RU "%USERNAME%" /F >nul 2>nul
-if errorlevel 1 (
-    echo  [WARNING] Could not create scheduled task.
-    echo  The server will still auto-start from CorelDraw.
-    echo  To start manually: open ai-server folder, run "npm start"
-) else (
-    echo  [OK] Server will auto-start when you log in
-)
-
-:: ── Step 6: Create a VBS launcher (hidden window) ────────
-:: Task Scheduler's /TR doesn't hide the window well, so we
-:: create a small VBS wrapper that launches node truly hidden
 set "VBS_FILE=%CONFIG_DIR%\start-server.vbs"
 
 (
@@ -117,11 +96,23 @@ set "VBS_FILE=%CONFIG_DIR%\start-server.vbs"
     echo WshShell.Run "cmd /c node server.js", 0, False
 ) > "%VBS_FILE%"
 
-:: Update the scheduled task to use the VBS wrapper instead
+echo  [OK] Hidden launcher created
+
+:: ── Step 6: Register Windows Task Scheduler job ──────────
+echo.
+echo  Registering auto-start task...
+
+:: Delete existing task if present (ignore errors)
 schtasks /Delete /TN "%TASK_NAME%" /F >nul 2>nul
-schtasks /Create /TN "%TASK_NAME%" /TR "wscript.exe ""%VBS_FILE%""" /SC ONLOGON /RU "%USERNAME%" /F >nul 2>nul
-if not errorlevel 1 (
-    echo  [OK] Hidden launcher created
+
+:: Create new task: runs VBS launcher on user logon
+schtasks /Create /TN "%TASK_NAME%" /TR "wscript.exe \"%VBS_FILE%\"" /SC ONLOGON /RL LIMITED /F >nul 2>nul
+if errorlevel 1 (
+    echo  [WARNING] Could not create scheduled task.
+    echo  The server will still auto-start from CorelDraw via AutoExec.
+    echo  To start manually: double-click %VBS_FILE%
+) else (
+    echo  [OK] Server will auto-start when you log in
 )
 
 :: ── Step 7: Start the server right now ───────────────────
@@ -157,14 +148,17 @@ echo    - The AI server starts automatically when you log in
 echo    - In CorelDraw, the Tools panel opens automatically
 echo    - No terminal, no commands, just open CorelDraw
 echo.
-echo  To set up CorelDraw macros:
+echo  To set up CorelDraw scripts:
 echo    1. Open CorelDraw
-echo    2. Go to Tools ^> Macros ^> Macro Editor
-echo    3. In the editor: File ^> Import File
-echo    4. Import these two files:
+echo    2. Press Alt+F11 to open the VBA Editor
+echo       (or: Tools ^> Scripts ^> right-click VBA ^> Edit)
+echo    3. In the VBA Editor's Project Explorer (left panel),
+echo       find "GlobalMacros" or your GMS project
+echo    4. Go to File ^> Import File
+echo    5. Import these two files:
 echo       %SCRIPT_DIR%Makros\ApiClient.bas
 echo       %SCRIPT_DIR%Makros\ToolsPanel.frm
-echo    5. Close the editor — done!
+echo    6. Close the editor — done!
 echo.
 echo  Config file: %CONFIG_FILE%
 echo  Server log:  check Task Manager for "node.exe" if needed
