@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChiroDX Tools — Feature Brainstorm</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f1117; color: #e2e8f0; line-height: 1.6; }
+  .page { max-width: 1140px; margin: 0 auto; padding: 40px 32px; }
+
+  h1 { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .subtitle { color: #64748b; font-size: 14px; margin-bottom: 52px; }
+  h2 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #475569; margin-bottom: 24px; }
+  hr { border: none; border-top: 1px solid #1e293b; margin: 52px 0; }
+
+  /* Priority badges */
+  .p1 { background: #166534; color: #4ade80; }
+  .p2 { background: #1e3a5f; color: #60a5fa; }
+  .p3 { background: #2e1a47; color: #c084fc; }
+  .p4 { background: #1e293b; color: #64748b; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ── TIER GRID ── */
+  .tier { margin-bottom: 48px; }
+  .tier-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .tier-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .tier-title { font-size: 16px; font-weight: 600; color: #e2e8f0; }
+  .tier-sub { font-size: 13px; color: #475569; }
+
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .feature-grid.two-col { grid-template-columns: repeat(2, 1fr); }
+
+  .feat { background: #141a24; border: 1px solid #1e293b; border-radius: 10px; padding: 16px 18px; position: relative; }
+  .feat-icon { font-size: 20px; margin-bottom: 8px; }
+  .feat-name { font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .feat-desc { font-size: 12px; color: #64748b; margin-bottom: 10px; }
+  .feat-example { font-size: 11px; color: #475569; background: #0d1117; border: 1px solid #1e293b; border-radius: 4px; padding: 6px 10px; font-style: italic; }
+  .feat-note { font-size: 11px; color: #3b82f6; margin-top: 8px; }
+
+  /* Already planned */
+  .feat.planned { border-color: #166534; opacity: 0.7; }
+  .feat.planned::after { content: '✓ Planned'; position: absolute; top: 10px; right: 12px; font-size: 9px; color: #4ade80; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ── MODEL TOGGLE SECTION ── */
+  .model-section { background: #141a24; border: 1px solid #1e293b; border-radius: 12px; padding: 28px; margin-bottom: 48px; }
+  .model-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0; }
+  .model-card { background: #0d1117; border: 1px solid #1e293b; border-radius: 8px; padding: 14px 12px; }
+  .model-card.recommended { border-color: #166534; }
+  .model-name { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+  .model-provider { font-size: 10px; color: #475569; margin-bottom: 8px; font-family: monospace; }
+  .model-tag { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 3px; margin-bottom: 8px; }
+  .tag-fast { background: #14312b; color: #4ade80; }
+  .tag-smart { background: #1e3a5f; color: #60a5fa; }
+  .tag-cheap { background: #2e1a20; color: #fb923c; }
+  .tag-free { background: #2e1a47; color: #c084fc; }
+  .tag-private { background: #1e293b; color: #94a3b8; }
+  .model-best-for { font-size: 11px; color: #475569; }
+
+  .smart-routing { background: #0d1520; border: 1px solid #1e3a5f; border-radius: 8px; padding: 14px 16px; margin-top: 16px; }
+  .smart-routing-title { font-size: 12px; font-weight: 600; color: #60a5fa; margin-bottom: 10px; }
+  .routing-rule { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #64748b; padding: 4px 0; }
+  .routing-rule code { background: #1e293b; padding: 1px 6px; border-radius: 3px; font-size: 11px; color: #94a3b8; }
+  .routing-arrow { color: #1e3a5f; }
+
+  /* ── PANEL EVOLUTION ── */
+  .panel-evolution { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 48px; }
+  .panel-ver { background: #141a24; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; }
+  .panel-ver h3 { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+  .panel-ver .ver-sub { font-size: 11px; color: #475569; margin-bottom: 16px; }
+  .tab-bar { display: flex; gap: 2px; margin-bottom: 14px; }
+  .tab { padding: 5px 12px; border-radius: 4px; font-size: 11px; color: #64748b; background: #0d1117; border: 1px solid #1e293b; cursor: pointer; }
+  .tab.active { background: #1e3a5f; color: #60a5fa; border-color: #2d5a8f; }
+  .panel-section-mini { margin-bottom: 12px; }
+  .mini-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: #475569; margin-bottom: 6px; }
+  .mini-btn-row { display: flex; flex-wrap: wrap; gap: 5px; }
+  .mini-tool-btn { background: #0d1117; border: 1px solid #1e293b; border-radius: 4px; padding: 4px 10px; font-size: 11px; color: #94a3b8; }
+  .mini-tool-btn.text { border-left: 2px solid #3b82f6; }
+  .mini-tool-btn.image { border-left: 2px solid #a855f7; }
+  .mini-tool-btn.font { border-left: 2px solid #f59e0b; }
+  .mini-tool-btn.color { border-left: 2px solid #ec4899; }
+  .model-select-mini { background: #0d1117; border: 1px solid #1e293b; border-radius: 4px; padding: 4px 8px; font-size: 10px; color: #64748b; display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 8px; }
+
+  /* ── HONEST TAKE ── */
+  .honest { background: #1a1a10; border: 1px solid #3d3a00; border-radius: 12px; padding: 24px; margin-bottom: 48px; }
+  .honest-title { font-size: 14px; font-weight: 600; color: #fbbf24; margin-bottom: 12px; }
+  .honest p { font-size: 13px; color: #94a3b8; margin-bottom: 10px; }
+  .honest p:last-child { margin-bottom: 0; }
+  .honest strong { color: #e2e8f0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Feature Brainstorm</h1>
+  <p class="subtitle">Thinking like a designer who makes menus, flyers, and business cards in CorelDraw every day</p>
+
+  <!-- ══════════════════════════════════════════
+       HONEST TAKE
+  ══════════════════════════════════════════ -->
+  <div class="honest">
+    <div class="honest-title">💡 Honest take before the list</div>
+    <p>Font tools and color tools are <strong>not too much</strong> — they're actually some of the most useful things for a designer's daily workflow. The key is to keep each tool <strong>focused and fast</strong>: one click, one result. No wizard flows, no multi-step dialogs.</p>
+    <p>The model toggle is <strong>an architectural decision</strong>, not a feature — it should be baked in from Phase 2 so every tool benefits from it. Routing cheap tasks to cheap models and hard tasks to smart models is where the cost savings are.</p>
+    <p>The 3 features I'd personally most want as a menu designer: <strong>Translation</strong> (constant need for DE/EN), <strong>Font Pairing</strong> (fastest way to find the second font), and <strong>Color Palette from Image</strong> (extract the brand colors from a logo in 2 clicks).</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TIER 1 — BUILD NOW
+  ══════════════════════════════════════════ -->
+  <div class="tier">
+    <div class="tier-header">
+      <div class="tier-dot" style="background:#4ade80"></div>
+      <div>
+        <div class="tier-title">Tier 1 — Build Now <span class="badge p1" style="font-size:10px;margin-left:4px">Phase 2–3</span></div>
+        <div class="tier-sub">Already in the plan. Solid foundation.</div>
+      </div>
+    </div>
+    <div class="feature-grid">
+      <div class="feat planned">
+        <div class="feat-icon">🔤</div>
+        <div class="feat-name">Grammar Check</div>
+        <div class="feat-desc">Finds spelling and grammar errors in the selected text frame.</div>
+      </div>
+      <div class="feat planned">
+        <div class="feat-icon">📋</div>
+        <div class="feat-name">Completeness Check</div>
+        <div class="feat-desc">Checks if required fields are present based on document type.</div>
+      </div>
+      <div class="feat planned">
+        <div class="feat-icon">🎨</div>
+        <div class="feat-name">Generate Image</div>
+        <div class="feat-desc">Generates an image via DALL-E and places it on the canvas.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TIER 2 — HIGH VALUE, ADD SOON
+  ══════════════════════════════════════════ -->
+  <div class="tier">
+    <div class="tier-header">
+      <div class="tier-dot" style="background:#60a5fa"></div>
+      <div>
+        <div class="tier-title">Tier 2 — High Value, Add Soon <span class="badge p2" style="font-size:10px;margin-left:4px">Phase 4</span></div>
+        <div class="tier-sub">These solve real daily pain points. Straightforward to implement.</div>
+      </div>
+    </div>
+    <div class="feature-grid">
+
+      <div class="feat">
+        <div class="feat-icon">🌍</div>
+        <div class="feat-name">Translation <span class="badge p2">Text</span></div>
+        <div class="feat-desc">Translate the selected text frame. Pick target language from a dropdown (DE, EN, FR, VI…). Replaces text or shows side-by-side.</div>
+        <div class="feat-example">"Hühnerfleisch in Ingwersauce" → "Chicken in ginger sauce"</div>
+        <div class="feat-note">→ GPT-4o-mini is fast &amp; accurate enough. Cost: ~$0.001 per call.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">✍️</div>
+        <div class="feat-name">Dish Description Writer <span class="badge p2">Text</span></div>
+        <div class="feat-desc">Give it a dish name and a tone (appetizing, short, formal). Returns a 1–2 sentence description ready to place on the menu.</div>
+        <div class="feat-example">"Nem Cuốn, tone: appetizing" → "Delicate rice paper rolls filled with fresh herbs, shrimp, and vermicelli…"</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">🎨</div>
+        <div class="feat-name">Color Palette Generator <span class="badge p2">Color</span></div>
+        <div class="feat-desc">Describe a mood or cuisine style, get back a 5-color palette with CMYK values ready to use in CorelDraw. One click copies to clipboard or applies to swatches.</div>
+        <div class="feat-example">"Upscale Vietnamese restaurant, warm evening" → 5 CMYK colors</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">🔡</div>
+        <div class="feat-name">Font Pairing Suggester <span class="badge p2">Font</span></div>
+        <div class="feat-desc">Type in the font you're already using as a header. Get 3 body font suggestions that pair well, with a short reason for each.</div>
+        <div class="feat-example">"Using Playfair Display for headers" → "Try Lato, Source Sans Pro, or Cormorant Garamond for body"</div>
+        <div class="feat-note">→ Pure text response. GPT-4o-mini, instant.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">📐</div>
+        <div class="feat-name">Price Format Checker <span class="badge p2">Text</span></div>
+        <div class="feat-desc">Scans all text on the page and flags inconsistent price formats. Are all prices "9,50 €"? Or mixed with "9.50€", "€ 9,50"? Highlights the outliers.</div>
+        <div class="feat-example">Found 3 prices using "." instead of "," as decimal separator.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">🖼️</div>
+        <div class="feat-name">Color Palette from Image <span class="badge p2">Color</span></div>
+        <div class="feat-desc">Select a bitmap on canvas (e.g., a logo). Extract the dominant 4–5 colors and return CMYK values. Instant brand color palette from a client's logo.</div>
+        <div class="feat-example">Select logo → get brand CMYK palette in one click</div>
+        <div class="feat-note">→ Server reads the image, uses GPT-4o Vision or color quantization.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TIER 3 — POWER FEATURES
+  ══════════════════════════════════════════ -->
+  <div class="tier">
+    <div class="tier-header">
+      <div class="tier-dot" style="background:#c084fc"></div>
+      <div>
+        <div class="tier-title">Tier 3 — Power Features <span class="badge p3" style="font-size:10px;margin-left:4px">Phase 5</span></div>
+        <div class="tier-sub">More complex to build, but very powerful for production workflows.</div>
+      </div>
+    </div>
+    <div class="feature-grid">
+
+      <div class="feat">
+        <div class="feat-icon">🔍</div>
+        <div class="feat-name">Font Identifier <span class="badge p3">Font</span></div>
+        <div class="feat-desc">Select a text object or bitmap with a font you don't recognize. AI (GPT-4o Vision) analyzes the letterforms and suggests what font it is or what fonts look similar.</div>
+        <div class="feat-example">"This looks like Trajan Pro or a similar classic serif…"</div>
+        <div class="feat-note">→ GPT-4o Vision. Export text as image → Vision analyzes it.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">♿</div>
+        <div class="feat-name">Contrast Checker <span class="badge p3">Color</span></div>
+        <div class="feat-desc">Select a text object. Check if the text color has sufficient contrast against its background (WCAG AA/AAA). Essential for accessibility compliance on printed material.</div>
+        <div class="feat-example">White on light yellow: ❌ Contrast ratio 1.8:1 (needs 4.5:1)</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">🔄</div>
+        <div class="feat-name">Tone Rewriter <span class="badge p3">Text</span></div>
+        <div class="feat-desc">Rewrite the selected text in a different register. Options: More formal, More casual, More concise, More appetizing. Shows a before/after in the panel.</div>
+        <div class="feat-example">"Hähnchen mit Gemüse" → "Zart gegrilltes Hähnchen auf knackigem Saisongemüse"</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">📏</div>
+        <div class="feat-name">Text Fit Optimizer <span class="badge p3">Text</span></div>
+        <div class="feat-desc">Text frame is overflowing. AI rewrites the content to fit the available space while preserving the key information. "Shorten this description by 30%."</div>
+        <div class="feat-example">Overflowing text frame → AI trims to fit, preserves meaning</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">⚖️</div>
+        <div class="feat-name">Legal Text Checker <span class="badge p3">Text</span></div>
+        <div class="feat-desc">For menus specifically: checks EU allergen declaration compliance. Are all 14 major allergens correctly labeled? Are the mandatory additive declarations present?</div>
+        <div class="feat-example">Item 14 uses allergen "A" but "A1" (Weizen) is more specific and required.</div>
+        <div class="feat-note">→ Uses specs/menu-data-model.ts as reference.</div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-icon">🤖</div>
+        <div class="feat-name">Auto-Layout from Data <span class="badge p3">Layout</span></div>
+        <div class="feat-desc">Future big feature. Load a JSON file matching the menu data model, CorelDraw auto-generates the menu with correct text frames, tab stops, superscript allergens, and price columns.</div>
+        <div class="feat-example">menu.json → fully laid out menu card in CorelDraw</div>
+        <div class="feat-note">→ This is where specs/menu-data-model.ts becomes essential.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════
+       MODEL TOGGLE
+  ══════════════════════════════════════════ -->
+  <h2>AI Model Toggle — Build Into Architecture From Day 1</h2>
+  <div class="model-section">
+
+    <p style="font-size:13px;color:#64748b;margin-bottom:20px">
+      The model toggle should be a setting in the panel, not a per-tool option. It sets the default model for all calls. The server can still override per-endpoint for tasks that require specific capabilities (e.g., image generation always uses DALL-E 3 regardless of setting).
+    </p>
+
+    <div class="model-grid">
+      <div class="model-card recommended">
+        <div class="model-name">GPT-4o</div>
+        <div class="model-provider">openai · gpt-4o</div>
+        <div class="model-tag tag-smart">Best quality</div>
+        <div class="model-best-for">Best for: complex text, legal checks, tone rewriting, image description</div>
+      </div>
+      <div class="model-card">
+        <div class="model-name">GPT-4o mini</div>
+        <div class="model-provider">openai · gpt-4o-mini</div>
+        <div class="model-tag tag-cheap">10× cheaper</div>
+        <div class="model-best-for">Best for: grammar, translation, font pairing, price format checks</div>
+      </div>
+      <div class="model-card">
+        <div class="model-name">Claude Haiku</div>
+        <div class="model-provider">anthropic · claude-haiku-4-5</div>
+        <div class="model-tag tag-fast">Very fast</div>
+        <div class="model-best-for">Best for: short tasks, quick completeness checks, simple Q&A</div>
+      </div>
+      <div class="model-card">
+        <div class="model-name">Ollama (Local)</div>
+        <div class="model-provider">local · llama3 / mistral</div>
+        <div class="model-tag tag-free">Free</div>
+        <div class="model-tag tag-private">100% Private</div>
+        <div class="model-best-for">Best for: client data you can't send to cloud. Slower, less accurate.</div>
+      </div>
+    </div>
+
+    <div class="smart-routing">
+      <div class="smart-routing-title">💡 Smart Auto-Routing (Optional Enhancement)</div>
+      <div class="routing-rule"><code>/text/grammar</code> <span class="routing-arrow">→</span> always uses <strong style="color:#e2e8f0">GPT-4o-mini</strong> (simple, cheap)</div>
+      <div class="routing-rule"><code>/text/completeness</code> <span class="routing-arrow">→</span> always uses <strong style="color:#e2e8f0">GPT-4o-mini</strong></div>
+      <div class="routing-rule"><code>/text/tone-rewrite</code> <span class="routing-arrow">→</span> uses <strong style="color:#e2e8f0">selected model</strong> (quality matters)</div>
+      <div class="routing-rule"><code>/image/generate</code> <span class="routing-arrow">→</span> always uses <strong style="color:#e2e8f0">DALL-E 3</strong> (no alternative yet)</div>
+      <div class="routing-rule"><code>/image/edit</code> <span class="routing-arrow">→</span> always uses <strong style="color:#e2e8f0">GPT-4o Vision + DALL-E 3</strong></div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════
+       UPDATED PANEL DESIGN
+  ══════════════════════════════════════════ -->
+  <h2>Updated Panel — With Tabs + Model Selector</h2>
+  <div class="panel-evolution">
+
+    <div class="panel-ver">
+      <h3>Before (Original Design)</h3>
+      <div class="ver-sub">Two sections, no tabs, no model choice</div>
+      <div class="panel-section-mini">
+        <div class="mini-label">Text Tools</div>
+        <div class="mini-btn-row">
+          <div class="mini-tool-btn text">🔤 Grammar</div>
+          <div class="mini-tool-btn text">📋 Completeness</div>
+        </div>
+      </div>
+      <div class="panel-section-mini">
+        <div class="mini-label">Image Tools</div>
+        <div class="mini-btn-row">
+          <div class="mini-tool-btn image">🎨 Generate</div>
+          <div class="mini-tool-btn image">✏️ Edit</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-ver" style="border-color:#1e3a5f">
+      <h3>After (Expanded Design)</h3>
+      <div class="ver-sub">Tabs keep it organized as tools grow</div>
+
+      <div class="tab-bar">
+        <div class="tab active">Text</div>
+        <div class="tab">Color</div>
+        <div class="tab">Font</div>
+        <div class="tab">Image</div>
+      </div>
+
+      <div class="panel-section-mini">
+        <div class="mini-btn-row">
+          <div class="mini-tool-btn text">🔤 Grammar</div>
+          <div class="mini-tool-btn text">📋 Completeness</div>
+          <div class="mini-tool-btn text">🌍 Translate</div>
+          <div class="mini-tool-btn text">✍️ Write Desc.</div>
+          <div class="mini-tool-btn text">📐 Price Format</div>
+          <div class="mini-tool-btn text">🔄 Rewrite Tone</div>
+        </div>
+      </div>
+
+      <div class="model-select-mini">
+        <span>🤖 Model: GPT-4o mini</span>
+        <span>▾</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PRIORITY SUMMARY
+  ══════════════════════════════════════════ -->
+  <h2>Recommended Build Order</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead>
+      <tr style="border-bottom:1px solid #1e293b">
+        <th style="text-align:left;padding:8px 16px;color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:1px">Phase</th>
+        <th style="text-align:left;padding:8px 16px;color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:1px">Feature</th>
+        <th style="text-align:left;padding:8px 16px;color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:1px">Category</th>
+        <th style="text-align:left;padding:8px 16px;color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:1px">Why now</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p1">2</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Grammar Check</td>
+        <td style="padding:10px 16px;color:#3b82f6">Text</td>
+        <td style="padding:10px 16px;color:#64748b">Core, validates the whole architecture</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p1">2</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Completeness Check</td>
+        <td style="padding:10px 16px;color:#3b82f6">Text</td>
+        <td style="padding:10px 16px;color:#64748b">Core, unique to design workflow</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p1">2</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Model Toggle</td>
+        <td style="padding:10px 16px;color:#94a3b8">Architecture</td>
+        <td style="padding:10px 16px;color:#64748b">Architectural — bake in now, free later</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p1">3</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Generate Image</td>
+        <td style="padding:10px 16px;color:#a855f7">Image</td>
+        <td style="padding:10px 16px;color:#64748b">High wow-factor, validates image pipeline</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p2">4</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Translation</td>
+        <td style="padding:10px 16px;color:#3b82f6">Text</td>
+        <td style="padding:10px 16px;color:#64748b">Daily need for DE/EN menus, trivial to add</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p2">4</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Color Palette Generator</td>
+        <td style="padding:10px 16px;color:#ec4899">Color</td>
+        <td style="padding:10px 16px;color:#64748b">Fast to build, immediately useful</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p2">4</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Font Pairing Suggester</td>
+        <td style="padding:10px 16px;color:#f59e0b">Font</td>
+        <td style="padding:10px 16px;color:#64748b">Pure text call, 10 lines of server code</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p2">4</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Price Format Checker</td>
+        <td style="padding:10px 16px;color:#3b82f6">Text</td>
+        <td style="padding:10px 16px;color:#64748b">Very specific, very useful for menu work</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p2">4</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Color Palette from Image</td>
+        <td style="padding:10px 16px;color:#ec4899">Color</td>
+        <td style="padding:10px 16px;color:#64748b">Reuses image pipeline already built</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p3">5</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Dish Description Writer</td>
+        <td style="padding:10px 16px;color:#3b82f6">Text</td>
+        <td style="padding:10px 16px;color:#64748b">Needs tone/style config first</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p3">5</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Font Identifier</td>
+        <td style="padding:10px 16px;color:#f59e0b">Font</td>
+        <td style="padding:10px 16px;color:#64748b">Needs Vision pipeline + export trick</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p3">5</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Contrast Checker</td>
+        <td style="padding:10px 16px;color:#ec4899">Color</td>
+        <td style="padding:10px 16px;color:#64748b">Needs CMYK→luminance conversion</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1e293b">
+        <td style="padding:10px 16px"><span class="badge p3">5</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Tone Rewriter</td>
+        <td style="padding:10px 16px;color:#3b82f6">Text</td>
+        <td style="padding:10px 16px;color:#64748b">Nice, but grammar/completeness more urgent</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 16px"><span class="badge p3">6</span></td>
+        <td style="padding:10px 16px;color:#e2e8f0">Auto-Layout from Data</td>
+        <td style="padding:10px 16px;color:#94a3b8">Layout</td>
+        <td style="padding:10px 16px;color:#64748b">The big one — needs menu-data-model.ts</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+</body>
+</html>

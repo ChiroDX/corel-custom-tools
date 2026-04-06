@@ -274,10 +274,14 @@ Private m_ServerDir As String
 
 ' ── Initialise ───────────────────────────────────────────────
 Private Sub UserForm_Initialize()
-    ' Detect server directory from this file's location
-    ' Adjust this path to match your machine if auto-detection fails
-    m_ServerDir = Environ("USERPROFILE") & _
-                  "\Documents\ChiroDX\corel-custom-tools\ai-server"
+    ' Read server directory from config file (written by setup.bat)
+    m_ServerDir = ReadConfigValue("server", "path")
+
+    ' Fallback to default location if config not found
+    If Len(m_ServerDir) = 0 Then
+        m_ServerDir = Environ("USERPROFILE") & _
+                      "\Documents\ChiroDX\corel-custom-tools\ai-server"
+    End If
 
     ' Populate dropdowns
     With cmbDocType

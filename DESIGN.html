@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChiroDX Tools — Design Document</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f1117; color: #e2e8f0; line-height: 1.6; }
+  .page { max-width: 1140px; margin: 0 auto; padding: 40px 32px; }
+
+  h1 { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .subtitle { color: #64748b; font-size: 14px; margin-bottom: 52px; }
+  h2 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #475569; margin-bottom: 24px; }
+  hr { border: none; border-top: 1px solid #1e293b; margin: 52px 0; }
+
+  /* ─── SECTION 1: Tool overview cards ─── */
+  .tools-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 52px; }
+  .tool-card { background: #141a24; border: 1px solid #1e293b; border-radius: 10px; padding: 18px 16px; }
+  .tool-card.text { border-top: 3px solid #3b82f6; }
+  .tool-card.image { border-top: 3px solid #a855f7; }
+  .tool-icon { font-size: 22px; margin-bottom: 10px; }
+  .tool-name { font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 6px; }
+  .tool-desc { font-size: 12px; color: #64748b; margin-bottom: 12px; }
+  .tool-input, .tool-output { font-size: 11px; color: #475569; }
+  .tool-input span, .tool-output span { color: #94a3b8; }
+  .pill { display: inline-block; background: #1e293b; border-radius: 4px; padding: 1px 7px; font-size: 10px; font-family: monospace; color: #94a3b8; margin-top: 4px; }
+  .pill.blue { background: #1e3a5f; color: #60a5fa; }
+  .pill.purple { background: #2e1a47; color: #c084fc; }
+  .pill.green { background: #14312b; color: #4ade80; }
+
+  /* ─── SECTION 2: UI Panel mockup ─── */
+  .mockup-area { display: flex; gap: 32px; align-items: flex-start; margin-bottom: 52px; }
+  .mockup-wrap { flex-shrink: 0; }
+  .mockup-annotations { flex: 1; display: flex; flex-direction: column; gap: 20px; padding-top: 8px; }
+  .annotation { display: flex; gap: 14px; }
+  .ann-num { width: 22px; height: 22px; border-radius: 50%; background: #1e3a5f; color: #60a5fa; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .ann-text h4 { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 3px; }
+  .ann-text p { font-size: 12px; color: #64748b; }
+
+  /* The actual panel mockup */
+  .panel {
+    width: 260px;
+    background: #1c2333;
+    border: 1px solid #2d3f55;
+    border-radius: 8px;
+    font-size: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .panel-title-bar {
+    background: #0f1623;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #2d3f55;
+    cursor: move;
+  }
+  .panel-title-bar span { color: #94a3b8; font-size: 12px; font-weight: 600; flex: 1; }
+  .panel-close { width: 14px; height: 14px; background: #3f2020; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #f87171; }
+  .panel-status { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #141a24; border-bottom: 1px solid #1e293b; font-size: 10px; color: #64748b; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
+  .status-dot.offline { background: #f87171; }
+
+  .panel-section { padding: 12px; border-bottom: 1px solid #1e293b; }
+  .section-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #475569; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: #1e293b; }
+
+  .tool-btn {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; background: #0d1520; border: 1px solid #1e293b;
+    border-radius: 5px; padding: 7px 10px; margin-bottom: 6px;
+    cursor: pointer; color: #e2e8f0;
+    transition: border-color 0.15s;
+  }
+  .tool-btn:hover { border-color: #3b82f6; }
+  .tool-btn:last-child { margin-bottom: 0; }
+  .tool-btn .btn-icon { font-size: 14px; width: 20px; text-align: center; }
+  .tool-btn .btn-label { font-size: 12px; color: #cbd5e1; flex: 1; text-align: left; }
+  .tool-btn .btn-key { font-size: 9px; color: #475569; font-family: monospace; }
+  .tool-btn.text-btn { border-left: 2px solid #3b82f6; }
+  .tool-btn.image-btn { border-left: 2px solid #a855f7; }
+
+  .select-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
+  .select-row label { font-size: 10px; color: #64748b; white-space: nowrap; }
+  .mock-select {
+    flex: 1; background: #0d1520; border: 1px solid #1e293b;
+    border-radius: 4px; padding: 4px 8px; font-size: 11px; color: #94a3b8;
+    appearance: none; display: flex; align-items: center; justify-content: space-between;
+  }
+  .mock-select::after { content: '▾'; color: #475569; }
+
+  .prompt-area {
+    width: 100%; background: #0d1520; border: 1px solid #1e293b;
+    border-radius: 4px; padding: 6px 8px; font-size: 11px; color: #94a3b8;
+    margin-bottom: 8px; min-height: 44px; resize: none;
+  }
+
+  /* Results panel */
+  .results-section { padding: 10px 12px; }
+  .result-item {
+    background: #0d1520; border: 1px solid #1e293b;
+    border-radius: 5px; padding: 8px 10px; margin-bottom: 6px;
+    border-left: 2px solid;
+  }
+  .result-item.error { border-left-color: #ef4444; }
+  .result-item.warn { border-left-color: #f59e0b; }
+  .result-item.info { border-left-color: #3b82f6; }
+  .result-type { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+  .result-item.error .result-type { color: #ef4444; }
+  .result-item.warn .result-type { color: #f59e0b; }
+  .result-item.info .result-type { color: #3b82f6; }
+  .result-text { font-size: 11px; color: #94a3b8; margin-bottom: 6px; }
+  .result-actions { display: flex; gap: 5px; }
+  .mini-btn { background: #1e293b; border: 1px solid #2d3748; border-radius: 3px; padding: 2px 8px; font-size: 10px; color: #94a3b8; cursor: pointer; }
+  .mini-btn.primary { background: #1e3a5f; border-color: #2d5a8f; color: #60a5fa; }
+
+  /* ─── SECTION 3: Data flow diagram ─── */
+  .flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 0; align-items: center; margin-bottom: 52px; }
+  .flow-box { background: #141a24; border: 1px solid #1e293b; border-radius: 10px; padding: 18px 16px; }
+  .flow-arrow { display: flex; align-items: center; justify-content: center; color: #2d3f55; font-size: 20px; padding: 0 8px; flex-direction: column; gap: 4px; }
+  .flow-arrow-label { font-size: 9px; color: #475569; font-family: monospace; white-space: nowrap; }
+  .flow-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 10px; }
+  .flow-items { list-style: none; }
+  .flow-items li { font-size: 12px; color: #94a3b8; padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+  .flow-items li::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #2d3f55; flex-shrink: 0; }
+
+  /* ─── SECTION 4: Endpoint table ─── */
+  .endpoint-table { width: 100%; border-collapse: collapse; margin-bottom: 52px; }
+  .endpoint-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #475569; padding: 0 16px 10px; border-bottom: 1px solid #1e293b; }
+  .endpoint-table td { padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 13px; vertical-align: top; }
+  .endpoint-table tr:last-child td { border-bottom: none; }
+  .method { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 11px; font-family: monospace; font-weight: 700; }
+  .method.get { background: #14312b; color: #4ade80; }
+  .method.post { background: #1e3a5f; color: #60a5fa; }
+  .endpoint-path { font-family: monospace; color: #e2e8f0; font-size: 13px; }
+  .param-list { font-size: 12px; color: #64748b; }
+  .param-list code { background: #1e293b; padding: 1px 5px; border-radius: 3px; font-size: 11px; color: #94a3b8; }
+
+  /* ─── SECTION 5: Key challenges ─── */
+  .challenges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 52px; }
+  .challenge-card { background: #141a24; border: 1px solid #1e293b; border-radius: 10px; padding: 18px 16px; }
+  .challenge-title { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .challenge-body { font-size: 12px; color: #64748b; margin-bottom: 10px; }
+  .solution { font-size: 12px; color: #4ade80; background: #0d2b1a; border-radius: 4px; padding: 6px 10px; }
+  .solution::before { content: '→ '; color: #166534; }
+
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>ChiroDX Tools — Design Document</h1>
+  <p class="subtitle">Tool-based AI helper panel for CorelDraw 2024 · Interaction design · API contracts · Implementation notes</p>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 1: The 4 tools
+       ════════════════════════════════════════════ -->
+  <h2>The Four Tools</h2>
+  <div class="tools-grid">
+
+    <div class="tool-card text">
+      <div class="tool-icon">🔤</div>
+      <div class="tool-name">Grammar Check</div>
+      <div class="tool-desc">Finds grammar and spelling errors in the selected text object. Returns a list of issues with suggestions.</div>
+      <div class="tool-input">Input: <span>Selected text frame</span></div>
+      <div class="tool-output">Output: <span>Annotated issue list</span></div>
+      <div style="margin-top:10px">
+        <span class="pill blue">VBA reads selection</span>
+        <span class="pill blue">GPT-4o corrects</span>
+      </div>
+    </div>
+
+    <div class="tool-card text">
+      <div class="tool-icon">📋</div>
+      <div class="tool-name">Completeness Check</div>
+      <div class="tool-desc">Checks if required information is present based on the document type. User selects type from a dropdown first.</div>
+      <div class="tool-input">Input: <span>All text + doc type</span></div>
+      <div class="tool-output">Output: <span>Missing / present fields</span></div>
+      <div style="margin-top:10px">
+        <span class="pill blue">Menu</span>
+        <span class="pill blue">Business Card</span>
+        <span class="pill blue">Flyer</span>
+      </div>
+    </div>
+
+    <div class="tool-card image">
+      <div class="tool-icon">🎨</div>
+      <div class="tool-name">Generate Image</div>
+      <div class="tool-desc">Type a prompt, choose a size, generate via DALL-E 3. The image is downloaded and placed on the CorelDraw canvas.</div>
+      <div class="tool-input">Input: <span>Text prompt + size</span></div>
+      <div class="tool-output">Output: <span>PNG placed on canvas</span></div>
+      <div style="margin-top:10px">
+        <span class="pill purple">DALL-E 3</span>
+        <span class="pill purple">Auto-placed</span>
+      </div>
+    </div>
+
+    <div class="tool-card image">
+      <div class="tool-icon">✏️</div>
+      <div class="tool-name">Edit Image</div>
+      <div class="tool-desc">Select an image on canvas, describe the change. Uses GPT-4o Vision to describe and DALL-E to regenerate with edits.</div>
+      <div class="tool-input">Input: <span>Selected image + prompt</span></div>
+      <div class="tool-output">Output: <span>New PNG replaces original</span></div>
+      <div style="margin-top:10px">
+        <span class="pill purple">GPT-4o Vision</span>
+        <span class="pill purple">DALL-E 3</span>
+      </div>
+    </div>
+
+  </div>
+
+  <hr>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 2: UI Panel mockup
+       ════════════════════════════════════════════ -->
+  <h2>Panel UI Design</h2>
+  <div class="mockup-area">
+
+    <div class="mockup-wrap">
+      <div class="panel">
+
+        <!-- Title bar -->
+        <div class="panel-title-bar">
+          <span>🎨 ChiroDX Tools</span>
+          <div class="panel-close">✕</div>
+        </div>
+
+        <!-- Server status -->
+        <div class="panel-status">
+          <div class="status-dot"></div>
+          <span>AI Server running · localhost:3000</span>
+        </div>
+
+        <!-- TEXT TOOLS -->
+        <div class="panel-section">
+          <div class="section-label">Text Tools</div>
+
+          <button class="tool-btn text-btn">
+            <span class="btn-icon">🔤</span>
+            <span class="btn-label">Grammar Check</span>
+            <span class="btn-key">Ctrl+G</span>
+          </button>
+
+          <div class="select-row">
+            <label>Type:</label>
+            <div class="mock-select">Menu &nbsp;▾</div>
+          </div>
+          <button class="tool-btn text-btn">
+            <span class="btn-icon">📋</span>
+            <span class="btn-label">Completeness Check</span>
+            <span class="btn-key">Ctrl+K</span>
+          </button>
+        </div>
+
+        <!-- IMAGE TOOLS -->
+        <div class="panel-section">
+          <div class="section-label">Image Tools</div>
+
+          <textarea class="prompt-area" placeholder="Describe the image to generate..."></textarea>
+
+          <button class="tool-btn image-btn">
+            <span class="btn-icon">🎨</span>
+            <span class="btn-label">Generate Image</span>
+          </button>
+          <button class="tool-btn image-btn">
+            <span class="btn-icon">✏️</span>
+            <span class="btn-label">Edit Selected Image</span>
+          </button>
+        </div>
+
+        <!-- RESULTS -->
+        <div class="results-section">
+          <div class="section-label" style="margin-bottom:10px">Results</div>
+
+          <div class="result-item error">
+            <div class="result-type">Grammar Error</div>
+            <div class="result-text">"Öffnungzeiten" → "Öffnungszeiten"</div>
+            <div class="result-actions">
+              <div class="mini-btn primary">Apply Fix</div>
+              <div class="mini-btn">Dismiss</div>
+            </div>
+          </div>
+
+          <div class="result-item warn">
+            <div class="result-type">Missing Field</div>
+            <div class="result-text">No telephone number found on this document.</div>
+            <div class="result-actions">
+              <div class="mini-btn">Dismiss</div>
+            </div>
+          </div>
+
+          <div class="result-item info">
+            <div class="result-type">Info</div>
+            <div class="result-text">3 menu items missing allergen info.</div>
+            <div class="result-actions">
+              <div class="mini-btn">Dismiss</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Annotations -->
+    <div class="mockup-annotations">
+      <div class="annotation">
+        <div class="ann-num">1</div>
+        <div class="ann-text">
+          <h4>Server Status Indicator</h4>
+          <p>Shows green/red whether the Node.js AI server is reachable. On open, VBA auto-starts the server in the background using <code>Shell()</code>. If it fails, user sees an error here.</p>
+        </div>
+      </div>
+      <div class="annotation">
+        <div class="ann-num">2</div>
+        <div class="ann-text">
+          <h4>Grammar Check</h4>
+          <p>Reads the currently selected text object from the canvas. Sends it to <code>/text/grammar</code>. Results appear below with per-issue Apply Fix buttons.</p>
+        </div>
+      </div>
+      <div class="annotation">
+        <div class="ann-num">3</div>
+        <div class="ann-text">
+          <h4>Document Type Dropdown</h4>
+          <p>Sets the context for the completeness check. Options: Menu, Business Card, Flyer, Poster, Invoice. Each has its own required-fields definition in the server.</p>
+        </div>
+      </div>
+      <div class="annotation">
+        <div class="ann-num">4</div>
+        <div class="ann-text">
+          <h4>Prompt Box (shared)</h4>
+          <p>Used by both image tools. For Generate: a creation prompt. For Edit: a description of the change to make to the selected image.</p>
+        </div>
+      </div>
+      <div class="annotation">
+        <div class="ann-num">5</div>
+        <div class="ann-text">
+          <h4>Results Panel</h4>
+          <p>Each result is color-coded: 🔴 Grammar errors, 🟡 Missing fields, 🔵 Info/suggestions. "Apply Fix" for grammar patches the text directly on canvas. There's no auto-apply — you stay in control.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <hr>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 3: Data flow
+       ════════════════════════════════════════════ -->
+  <h2>Data Flow</h2>
+  <div class="flow">
+
+    <div class="flow-box">
+      <div class="flow-title">CorelDraw Canvas</div>
+      <ul class="flow-items">
+        <li>Selected text object</li>
+        <li>All text on page</li>
+        <li>Selected image (bitmap)</li>
+        <li>User's prompt text</li>
+        <li>Document type choice</li>
+      </ul>
+    </div>
+
+    <div class="flow-arrow">
+      →
+      <span class="flow-arrow-label">VBA XMLHTTP</span>
+      <span class="flow-arrow-label">localhost:3000</span>
+    </div>
+
+    <div class="flow-box">
+      <div class="flow-title">ai-server (Node.js)</div>
+      <ul class="flow-items">
+        <li>Validates request</li>
+        <li>Builds AI prompt</li>
+        <li>Calls OpenAI API</li>
+        <li>Parses JSON response</li>
+        <li>Returns structured data</li>
+        <li>Downloads DALL-E image</li>
+        <li>Saves image to temp path</li>
+      </ul>
+    </div>
+
+    <div class="flow-arrow">
+      →
+      <span class="flow-arrow-label">Structured JSON</span>
+      <span class="flow-arrow-label">+ image path</span>
+    </div>
+
+    <div class="flow-box">
+      <div class="flow-title">VBA (back in Corel)</div>
+      <ul class="flow-items">
+        <li>Parse JSON response</li>
+        <li>Show issues in panel</li>
+        <li>"Apply Fix" patches text</li>
+        <li>Import image to canvas</li>
+        <li>Replace selected image</li>
+        <li>Update status indicator</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <hr>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 4: API Endpoints
+       ════════════════════════════════════════════ -->
+  <h2>Server API Contract</h2>
+  <table class="endpoint-table">
+    <thead>
+      <tr>
+        <th>Method</th>
+        <th>Endpoint</th>
+        <th>Request Body</th>
+        <th>Response</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="method get">GET</span></td>
+        <td class="endpoint-path">/health</td>
+        <td class="param-list">—</td>
+        <td class="param-list"><code>{ status: "ok", version: "1.0" }</code></td>
+        <td class="param-list">VBA polls this on panel open to show server status dot.</td>
+      </tr>
+      <tr>
+        <td><span class="method post">POST</span></td>
+        <td class="endpoint-path">/text/grammar</td>
+        <td class="param-list"><code>{ text: "..." }</code></td>
+        <td class="param-list"><code>{ issues: [{ original, suggestion, explanation, lineHint }] }</code></td>
+        <td class="param-list">GPT-4o returns structured JSON. Each issue maps to a fix that VBA can apply.</td>
+      </tr>
+      <tr>
+        <td><span class="method post">POST</span></td>
+        <td class="endpoint-path">/text/completeness</td>
+        <td class="param-list"><code>{ text: "...", documentType: "menu" }</code></td>
+        <td class="param-list"><code>{ missing: ["phone", "hours"], present: ["address", "prices"] }</code></td>
+        <td class="param-list">Server has a required-fields config per doc type. AI checks which are present.</td>
+      </tr>
+      <tr>
+        <td><span class="method post">POST</span></td>
+        <td class="endpoint-path">/image/generate</td>
+        <td class="param-list"><code>{ prompt: "...", size: "1024x1024" }</code></td>
+        <td class="param-list"><code>{ localPath: "C:\\Temp\\chiroDX_gen_001.png" }</code></td>
+        <td class="param-list">Server calls DALL-E 3, downloads the PNG to a temp folder, returns the Windows path. VBA imports it into CorelDraw.</td>
+      </tr>
+      <tr>
+        <td><span class="method post">POST</span></td>
+        <td class="endpoint-path">/image/edit</td>
+        <td class="param-list"><code>{ imagePath: "C:\\...", prompt: "make background white" }</code></td>
+        <td class="param-list"><code>{ localPath: "C:\\Temp\\chiroDX_edit_001.png" }</code></td>
+        <td class="param-list">VBA exports the selected bitmap to a temp path, sends the path. Server reads file, calls GPT-4o Vision + DALL-E for the edit.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- ════════════════════════════════════════════
+       SECTION 5: Key Technical Challenges
+       ════════════════════════════════════════════ -->
+  <h2>Key Technical Challenges</h2>
+  <div class="challenges">
+
+    <div class="challenge-card">
+      <div class="challenge-title">⏳ VBA is Synchronous</div>
+      <div class="challenge-body">VBA's <code>MSXML2.XMLHTTP</code> blocks the UI thread while waiting for the API. An AI call can take 3–10 seconds — CorelDraw freezes.</div>
+      <div class="solution">Use <code>MSXML2.ServerXMLHTTP</code> with a short timeout + a "loading" label update trick, or show a progress indicator before the call.</div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-title">🖼 Exporting Bitmaps from VBA</div>
+      <div class="challenge-body">To edit an image, VBA needs to export the selected bitmap to disk as a PNG before sending. CorelDraw's VBA API supports this but needs correct export settings.</div>
+      <div class="solution">Use <code>Shape.Export</code> with <code>cdrPNG</code> filter to save to a temp path, then send that path to the server. Server reads from disk.</div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-title">📦 JSON Parsing in VBA</div>
+      <div class="challenge-body">VBA has no native JSON parser. The server response is JSON, but VBA can't decode it directly without a library or workaround.</div>
+      <div class="solution">Server returns responses in a simplified format that VBA can parse with basic string operations, or use VBA-JSON (a lightweight open source module).</div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-title">🚀 Auto-starting the Server</div>
+      <div class="challenge-body">The Node.js server needs to be running before any tool call. Requiring the user to manually open a terminal is bad UX.</div>
+      <div class="solution">VBA <code>Shell()</code> starts the server silently on panel open. Panel polls <code>/health</code> every 2 seconds until it responds, then turns the dot green.</div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-title">✏️ Applying Grammar Fixes</div>
+      <div class="challenge-body">After AI returns a correction, VBA needs to find the exact text string in the CorelDraw text object and replace it — without losing the existing formatting.</div>
+      <div class="solution">Use CorelDraw's <code>FindAndReplaceText</code> or iterate <code>TextRange</code> to find and replace text while preserving character-level formatting (font, size, color).</div>
+    </div>
+
+    <div class="challenge-card">
+      <div class="challenge-title">📐 Image Placement on Canvas</div>
+      <div class="challenge-body">After generating an image, it needs to be imported and positioned sensibly on the canvas — not dumped at 0,0 at full size.</div>
+      <div class="solution">Import with <code>ActiveLayer.Import</code>, then center the result using <code>Shape.SetPosition</code> based on the current viewport center or selected object bounds.</div>
+    </div>
+
+  </div>
+
+  <hr>
+
+  <!-- File structure -->
+  <h2>Resulting File Structure</h2>
+  <div style="background:#141a24; border:1px solid #1e293b; border-radius:10px; padding:24px; font-family:monospace; font-size:13px; color:#94a3b8; line-height:2;">
+    <span style="color:#60a5fa">corel-custom-tools/</span><br>
+    &nbsp;&nbsp;<span style="color:#4ade80">Makros/</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;CustomMacroStorage.gms &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#475569">← VBA project (main entry point)</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;ToolsPanel.frm &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: the panel UserForm</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;ToolsPanel.frx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: panel binary resources</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;ApiClient.bas &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: XMLHTTP wrapper module</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;JsonParser.bas &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: lightweight JSON parser</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;ResponseModal.frm &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#475569">← old modal (keep or retire)</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;Watermark.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#475569">← keep as-is</span><br>
+    &nbsp;&nbsp;<span style="color:#4ade80">ai-server/</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;server.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← REDESIGN: add all endpoints</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;routes/<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: /text/grammar, /text/completeness</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: /image/generate, /image/edit</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;config/<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;documentTypes.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: required fields per doc type</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;package.json<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;.env &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#475569">← OPENAI_API_KEY (never committed)</span><br>
+    &nbsp;&nbsp;<span style="color:#4ade80">Templates/</span><br>
+    &nbsp;&nbsp;README.md<br>
+    &nbsp;&nbsp;ARCHITECTURE.html<br>
+    &nbsp;&nbsp;<span style="color:#60a5fa">DESIGN.html &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#475569">← this file</span></span>
+  </div>
+
+</div>
+</body>
+</html>

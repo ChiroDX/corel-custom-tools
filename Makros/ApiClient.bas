@@ -18,6 +18,100 @@ Option Explicit
 Public Const SERVER_URL     As String = "http://localhost:3000"
 Public Const SERVER_TIMEOUT As Long   = 60000   ' ms (60 s — AI calls can be slow)
 Public Const STARTUP_WAIT   As Integer = 20      ' half-second attempts to wait for server
+Public Const CONFIG_FILE    As String = "ChiroDX\config.ini"  ' relative to %APPDATA%
+
+' ── Config file reader ──────────────────────────────────────
+' Reads a value from %APPDATA%\ChiroDX\config.ini
+' Format: simple INI with [section] headers and key=value lines
+' Returns empty string if not found.
+Public Function ReadConfigValue(ByVal section As String, ByVal key As String) As String
+    Dim filePath As String
+    filePath = Environ("APPDATA") & "\" & CONFIG_FILE
+
+    If Dir(filePath) = "" Then
+        ReadConfigValue = ""
+        Exit Function
+    End If
+
+    Dim fNum As Integer
+    fNum = FreeFile
+    Open filePath For Input As #fNum
+
+    Dim inSection As Boolean
+    inSection = False
+    Dim line As String
+
+    Do While Not EOF(fNum)
+        Line Input #fNum, line
+        line = Trim(line)
+
+        ' Skip empty lines and comments
+        If Len(line) = 0 Then GoTo nextLine
+        If Left(line, 1) = ";" Or Left(line, 1) = "#" Then GoTo nextLine
+
+        ' Check for section header
+        If Left(line, 1) = "[" Then
+            Dim secEnd As Long
+            secEnd = InStr(line, "]")
+            If secEnd > 0 Then
+                Dim secName As String
+                secName = Mid(line, 2, secEnd - 2)
+                inSection = (LCase(secName) = LCase(section))
+            End If
+            GoTo nextLine
+        End If
+
+        ' If we're in the right section, check for the key
+        If inSection Then
+            Dim eqPos As Long
+            eqPos = InStr(line, "=")
+            If eqPos > 0 Then
+                Dim lineKey As String
+                lineKey = Trim(Left(line, eqPos - 1))
+                If LCase(lineKey) = LCase(key) Then
+                    ReadConfigValue = Trim(Mid(line, eqPos + 1))
+                    Close #fNum
+                    Exit Function
+                End If
+            End If
+        End If
+nextLine:
+    Loop
+
+    Close #fNum
+    ReadConfigValue = ""
+End Function
+
+' ── AutoExec — runs automatically when CorelDraw starts ─────
+' Name this sub "AutoExec" so CorelDraw calls it on startup.
+' It reads the server path from the config file, starts the
+' server if needed, and optionally opens the ToolsPanel.
+Public Sub AutoExec()
+    On Error Resume Next
+
+    ' Read server directory from config
+    Dim serverDir As String
+    serverDir = ReadConfigValue("server", "path")
+
+    ' Fallback to default location if config not found
+    If Len(serverDir) = 0 Then
+        serverDir = Environ("USERPROFILE") & _
+                    "\Documents\ChiroDX\corel-custom-tools\ai-server"
+    End If
+
+    ' Try to start the server (silently — no errors if it fails)
+    EnsureServerRunning serverDir
+
+    ' Check if we should auto-open the panel
+    Dim autoOpen As String
+    autoOpen = ReadConfigValue("settings", "auto_open_panel")
+
+    If LCase(autoOpen) = "true" Then
+        ShowToolsPanel
+    End If
+
+    On Error GoTo 0
+End Sub
 
 ' ── Server auto-start ───────────────────────────────────────
 

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CorelDraw AI Plugin — Architecture & Feasibility</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f1117; color: #e2e8f0; line-height: 1.6; }
+
+  .page { max-width: 1100px; margin: 0 auto; padding: 40px 32px; }
+  h1 { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .subtitle { color: #94a3b8; font-size: 15px; margin-bottom: 48px; }
+
+  /* Section headers */
+  h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 20px; }
+
+  /* Verdict cards */
+  .verdict-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 48px; }
+  .verdict-card { border-radius: 12px; padding: 20px 24px; border: 1px solid; }
+  .verdict-card .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .verdict-card h3 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+  .verdict-card p { font-size: 14px; color: #94a3b8; }
+  .card-keep { background: #0d2b1a; border-color: #166534; }
+  .card-keep .label { color: #4ade80; }
+  .card-keep h3 { color: #4ade80; }
+  .card-dead { background: #2b1515; border-color: #7f1d1d; }
+  .card-dead .label { color: #f87171; }
+  .card-dead h3 { color: #f87171; }
+  .card-warn { background: #2b2415; border-color: #78350f; }
+  .card-warn .label { color: #fbbf24; }
+  .card-warn h3 { color: #fbbf24; }
+  .card-info { background: #151c2b; border-color: #1e3a5f; }
+  .card-info .label { color: #60a5fa; }
+  .card-info h3 { color: #60a5fa; }
+
+  /* Audit table */
+  .audit-table { width: 100%; border-collapse: collapse; margin-bottom: 48px; }
+  .audit-table th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; padding: 0 16px 12px; border-bottom: 1px solid #1e293b; }
+  .audit-table td { padding: 14px 16px; border-bottom: 1px solid #1e293b; font-size: 14px; vertical-align: top; }
+  .audit-table tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #166534; color: #4ade80; }
+  .badge-red { background: #7f1d1d; color: #f87171; }
+  .badge-yellow { background: #78350f; color: #fbbf24; }
+  .issue-list { list-style: none; }
+  .issue-list li { padding: 3px 0; color: #94a3b8; font-size: 13px; }
+  .issue-list li::before { content: '⚠ '; color: #fbbf24; }
+  .ok-list li::before { content: '✓ '; color: #4ade80; }
+
+  /* Path comparison */
+  .path-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 48px; }
+  .path-card { border-radius: 12px; padding: 24px; border: 1px solid #1e293b; background: #141a24; }
+  .path-card.recommended { border-color: #166534; background: #0d1f14; }
+  .recommended-badge { display: inline-block; background: #166534; color: #4ade80; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border-radius: 4px; margin-bottom: 12px; }
+  .path-card h3 { font-size: 16px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+  .path-card .tech { font-size: 12px; color: #64748b; margin-bottom: 16px; font-family: monospace; }
+  .pro-list, .con-list { list-style: none; margin-bottom: 12px; }
+  .pro-list li { font-size: 13px; color: #94a3b8; padding: 3px 0; }
+  .pro-list li::before { content: '+ '; color: #4ade80; font-weight: 700; }
+  .con-list li { font-size: 13px; color: #94a3b8; padding: 3px 0; }
+  .con-list li::before { content: '− '; color: #f87171; font-weight: 700; }
+
+  /* Architecture diagram */
+  .diagram { margin-bottom: 48px; }
+  .diagram-box { border-radius: 12px; border: 1px solid #1e293b; background: #141a24; padding: 36px; }
+
+  .arch-corel { background: #111827; border: 2px solid #374151; border-radius: 10px; padding: 20px; margin-bottom: 28px; }
+  .arch-corel-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .arch-corel-label::before { content: ''; display: block; width: 8px; height: 8px; background: #374151; border-radius: 50%; }
+
+  .corel-inner { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start; }
+
+  .canvas-mock { background: #1a2332; border: 1px dashed #2d3f55; border-radius: 6px; padding: 16px; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #4b5563; font-size: 13px; gap: 8px; }
+  .canvas-mock-cross { width: 40px; height: 40px; position: relative; }
+  .canvas-mock-cross::before, .canvas-mock-cross::after { content: ''; position: absolute; background: #2d3f55; }
+  .canvas-mock-cross::before { width: 100%; height: 2px; top: 50%; transform: translateY(-50%); }
+  .canvas-mock-cross::after { height: 100%; width: 2px; left: 50%; transform: translateX(-50%); }
+
+  .chat-panel { background: #0d1520; border: 1px solid #1e4068; border-radius: 8px; width: 280px; }
+  .chat-header { background: #1e3a5f; padding: 10px 14px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; color: #93c5fd; display: flex; align-items: center; gap: 8px; }
+  .chat-history { padding: 12px 14px; min-height: 120px; font-size: 12px; color: #94a3b8; display: flex; flex-direction: column; gap: 8px; }
+  .chat-msg-user { background: #1e3a5f; border-radius: 8px 8px 0 8px; padding: 6px 10px; color: #bfdbfe; align-self: flex-end; max-width: 85%; }
+  .chat-msg-ai { background: #1a2332; border-radius: 8px 8px 8px 0; padding: 6px 10px; color: #94a3b8; max-width: 85%; }
+  .chat-input { border-top: 1px solid #1e293b; padding: 10px 14px; display: flex; gap: 8px; }
+  .chat-input-mock { flex: 1; background: #1a2332; border: 1px solid #1e293b; border-radius: 4px; padding: 4px 8px; font-size: 11px; color: #64748b; }
+  .chat-send-btn { background: #1e3a5f; border: none; border-radius: 4px; padding: 4px 10px; font-size: 11px; color: #60a5fa; cursor: pointer; }
+  .chat-actions { padding: 8px 14px; display: flex; gap: 6px; border-top: 1px solid #1e293b; }
+  .chat-action-btn { background: #0d2240; border: 1px solid #1e4068; border-radius: 4px; padding: 3px 8px; font-size: 10px; color: #60a5fa; }
+
+  .arrow-down { display: flex; flex-direction: column; align-items: center; margin: 8px 0; color: #374151; font-size: 12px; gap: 2px; }
+  .arrow-down::before { content: '│'; }
+  .arrow-down::after { content: '▼'; }
+  .arrow-label { font-size: 11px; color: #4b5563; font-family: monospace; background: #111827; padding: 2px 8px; border-radius: 4px; border: 1px solid #1e293b; }
+
+  .services-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .service-box { background: #0d1520; border: 1px solid #1e293b; border-radius: 8px; padding: 16px 18px; }
+  .service-box.highlight { border-color: #1e4068; }
+  .service-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 6px; }
+  .service-name { font-size: 15px; font-weight: 600; color: #e2e8f0; margin-bottom: 8px; }
+  .endpoint-list { list-style: none; }
+  .endpoint-list li { font-size: 12px; font-family: monospace; color: #94a3b8; padding: 2px 0; }
+  .endpoint-list li span { color: #60a5fa; }
+  .endpoint-list li .method { color: #4ade80; margin-right: 6px; }
+  .endpoint-list li .new { color: #fbbf24; font-size: 10px; margin-left: 4px; }
+
+  /* Roadmap */
+  .roadmap { display: flex; flex-direction: column; gap: 0; margin-bottom: 48px; }
+  .phase { display: flex; gap: 20px; }
+  .phase-line { display: flex; flex-direction: column; align-items: center; }
+  .phase-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .phase-dot.done { background: #166534; color: #4ade80; }
+  .phase-dot.next { background: #1e3a5f; color: #60a5fa; }
+  .phase-dot.later { background: #1e293b; color: #64748b; }
+  .phase-connector { width: 2px; flex: 1; min-height: 20px; background: #1e293b; }
+  .phase-content { padding: 0 0 32px 0; flex: 1; }
+  .phase-title { font-size: 15px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; margin-top: 4px; }
+  .phase-desc { font-size: 13px; color: #64748b; }
+  .phase-tag { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 8px; }
+  .tag-done { background: #166534; color: #4ade80; }
+  .tag-next { background: #1e3a5f; color: #60a5fa; }
+  .tag-later { background: #1e293b; color: #94a3b8; }
+
+  hr { border: none; border-top: 1px solid #1e293b; margin: 0 0 48px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>CorelDraw AI Plugin</h1>
+  <p class="subtitle">Feasibility Audit · Architecture Design · Implementation Roadmap</p>
+
+  <!-- VERDICT SECTION -->
+  <h2>Current Code Verdict</h2>
+  <div class="verdict-grid">
+
+    <div class="verdict-card card-keep">
+      <div class="label">✅ Keep — Active</div>
+      <h3>corel-custom-tools</h3>
+      <p>Your main repo. VBA macros, UserForm, JS scripts and templates. Last touched Dec 2025. This is the one to build on.</p>
+    </div>
+
+    <div class="verdict-card card-warn">
+      <div class="label">⚠ Merged — Needs Redesign</div>
+      <h3>ai-server (from chatgpt-corel)</h3>
+      <p>Functional prototype with a single hardcoded use case (German menu formatter). The <em>architecture is correct</em> but the server needs to become general-purpose.</p>
+    </div>
+
+    <div class="verdict-card card-dead">
+      <div class="label">🗑 Delete — 100% Duplicate</div>
+      <h3>CorelTemplates</h3>
+      <p>Byte-for-byte identical to <code>corel-custom-tools/Templates/</code>. Last commit April 2023. Zero unique content. Safe to delete.</p>
+    </div>
+
+    <div class="verdict-card card-info">
+      <div class="label">📦 Separate Project</div>
+      <h3>chiro-dx-erp</h3>
+      <p>Next.js + Hasura ERP app. Nothing to do with CorelDraw. Move to its own folder on your computer.</p>
+    </div>
+
+  </div>
+
+  <hr>
+
+  <!-- AUDIT TABLE -->
+  <h2>Code Quality Audit</h2>
+  <table class="audit-table">
+    <thead>
+      <tr>
+        <th>File</th>
+        <th>Status</th>
+        <th>Issues Found</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>Makros/Watermark.js</code></td>
+        <td><span class="badge badge-green">Good</span></td>
+        <td>
+          <ul class="issue-list ok-list">
+            <li>Clean, readable, well-commented</li>
+            <li>Uses modern CorelDraw JS API correctly</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><code>Makros/ResponseModal.frm</code></td>
+        <td><span class="badge badge-yellow">Incomplete</span></td>
+        <td>
+          <ul class="issue-list">
+            <li>Caption still reads "UserForm1" — never renamed</li>
+            <li>Zero VBA code in the .frm (hidden in binary .gms)</li>
+            <li>Modal only — blocks CorelDraw while open</li>
+            <li>No chat history, no input field, likely just a text box</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><code>ai-server/server.js</code></td>
+        <td><span class="badge badge-yellow">Prototype</span></td>
+        <td>
+          <ul class="issue-list">
+            <li>Prompt is hardcoded (only does menu text correction)</li>
+            <li>No general <code>/chat</code> endpoint</li>
+            <li>No <code>/health</code> endpoint (can't check if server is running)</li>
+            <li>No CORS headers (blocks browser-based calls)</li>
+            <li>Crashes silently if OPENAI_API_KEY is missing</li>
+            <li>No conversation history / context window support</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><code>CustomMacroStorage.gms</code></td>
+        <td><span class="badge badge-yellow">Black Box</span></td>
+        <td>
+          <ul class="issue-list">
+            <li>Binary format — cannot review code in git diff</li>
+            <li>All logic is locked inside the binary</li>
+            <li>Consider exporting VBA modules as plain .bas/.frm files</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- PATH COMPARISON -->
+  <h2>Two Valid Implementation Paths</h2>
+  <div class="path-grid">
+
+    <div class="path-card recommended">
+      <div class="recommended-badge">Recommended for You</div>
+      <h3>Path A — VBA + Local Server</h3>
+      <div class="tech">VBA (built-in) + Node.js + OpenAI API</div>
+      <ul class="pro-list">
+        <li>No extra tools — VBA is already in CorelDraw</li>
+        <li>You already have 80% of it built</li>
+        <li>Server auto-starts via VBA <code>Shell()</code> command</li>
+        <li>Non-modal UserForm = persistent panel (works!)</li>
+        <li>Easy to maintain and extend</li>
+        <li>Works on any Windows machine with Node.js</li>
+      </ul>
+      <ul class="con-list">
+        <li>Not a true "Docker" panel (floats, not docked)</li>
+        <li>Requires Node.js installed on machine</li>
+        <li>VBA HTTP calls are synchronous (UI brief freeze)</li>
+      </ul>
+    </div>
+
+    <div class="path-card">
+      <h3>Path B — VSTA C# Docker</h3>
+      <div class="tech">C# + .NET + Visual Studio 2019 + WPF/WebView2</div>
+      <ul class="pro-list">
+        <li>True dockable panel — sits alongside Objects, Properties</li>
+        <li>Rich UI — can embed a full web interface (WebView2)</li>
+        <li>Direct async HTTP calls — no UI freezing</li>
+        <li>No external server needed</li>
+        <li>Professional, polished result</li>
+      </ul>
+      <ul class="con-list">
+        <li>Requires Visual Studio 2019 (specific version!)</li>
+        <li>C# knowledge needed</li>
+        <li>Much longer development cycle</li>
+        <li>Compiled DLL — harder to quick-edit</li>
+        <li>High setup friction</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <p style="font-size:13px; color:#64748b; margin-bottom:48px;">
+    <strong style="color:#fbbf24;">Bottom line:</strong> Path A is achievable now with what you have. Path B is the "dream" version.
+    Start with Path A, migrate to Path B later once you have a working feature set.
+  </p>
+
+  <hr>
+
+  <!-- ARCHITECTURE DIAGRAM -->
+  <h2>End Goal Architecture (Path A)</h2>
+  <div class="diagram">
+    <div class="diagram-box">
+
+      <!-- CorelDraw container -->
+      <div class="arch-corel">
+        <div class="arch-corel-label">CorelDraw 2024 — Windows Application</div>
+        <div class="corel-inner">
+          <div class="canvas-mock">
+            <div class="canvas-mock-cross"></div>
+            <span>Drawing Canvas</span>
+          </div>
+          <div class="chat-panel">
+            <div class="chat-header">
+              🤖 AI Assistant
+            </div>
+            <div class="chat-history">
+              <div class="chat-msg-user">Correct this menu text for me</div>
+              <div class="chat-msg-ai">Sure! Here's the corrected version with proper tabs and superscript allergens...</div>
+              <div class="chat-msg-user">Suggest a color palette for a luxury restaurant</div>
+            </div>
+            <div class="chat-input">
+              <div class="chat-input-mock">Type a message...</div>
+              <button class="chat-send-btn">Send</button>
+            </div>
+            <div class="chat-actions">
+              <div class="chat-action-btn">📋 Use in Canvas</div>
+              <div class="chat-action-btn">📌 New Chat</div>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:12px; color:#4b5563; margin-top:12px; text-align:center;">
+          VBA Macro → <code style="color:#60a5fa;">MSXML2.ServerXMLHTTP</code> → POST to localhost:3000
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="arrow-down">
+        <span class="arrow-label">HTTP POST localhost:3000/chat</span>
+      </div>
+
+      <!-- Services -->
+      <div class="services-row">
+        <div class="service-box highlight">
+          <div class="service-label">Local Node.js Server</div>
+          <div class="service-name">ai-server</div>
+          <ul class="endpoint-list">
+            <li><span class="method">GET</span> <span>/health</span></li>
+            <li><span class="method">POST</span> <span>/chat</span> <span class="new">NEW</span></li>
+            <li><span class="method">POST</span> <span>/correct-text</span></li>
+            <li><span class="method">POST</span> <span>/suggest-colors</span> <span class="new">FUTURE</span></li>
+            <li><span class="method">POST</span> <span>/describe-selection</span> <span class="new">FUTURE</span></li>
+          </ul>
+        </div>
+        <div class="service-box">
+          <div class="service-label">OpenAI API</div>
+          <div class="service-name">GPT-4o</div>
+          <ul class="endpoint-list">
+            <li><span class="method">POST</span> <span>/chat/completions</span></li>
+          </ul>
+          <div style="margin-top:12px; font-size:12px; color:#4b5563;">
+            API Key stored in<br><code style="color:#fbbf24;">.env</code> (never committed)
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ROADMAP -->
+  <h2>Implementation Roadmap</h2>
+  <div class="roadmap">
+
+    <div class="phase">
+      <div class="phase-line">
+        <div class="phase-dot done">✓</div>
+        <div class="phase-connector"></div>
+      </div>
+      <div class="phase-content">
+        <div class="phase-title">Phase 1 — Single Repo <span class="phase-tag tag-done">Done</span></div>
+        <div class="phase-desc">Merged chatgpt-corel into corel-custom-tools/ai-server. Added README, .gitignore, .env.example. One clean git repo.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-line">
+        <div class="phase-dot next">2</div>
+        <div class="phase-connector"></div>
+      </div>
+      <div class="phase-content">
+        <div class="phase-title">Phase 2 — General AI Server <span class="phase-tag tag-next">Next</span></div>
+        <div class="phase-desc">Redesign server.js with a generic <code>/chat</code> endpoint, conversation history, <code>/health</code> check, CORS headers, and proper error handling for missing API key.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-line">
+        <div class="phase-dot next">3</div>
+        <div class="phase-connector"></div>
+      </div>
+      <div class="phase-content">
+        <div class="phase-title">Phase 3 — AI Chat UserForm in VBA <span class="phase-tag tag-next">Next</span></div>
+        <div class="phase-desc">Build a proper non-modal UserForm with chat history (ListBox), input field (TextBox), Send button, and a "Use in Canvas" button. VBA auto-starts the server via Shell() on open.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-line">
+        <div class="phase-dot later">4</div>
+        <div class="phase-connector"></div>
+      </div>
+      <div class="phase-content">
+        <div class="phase-title">Phase 4 — Context Awareness <span class="phase-tag tag-later">Later</span></div>
+        <div class="phase-desc">VBA passes the current selection's text/properties to the AI with every message. AI can "see" what's on the canvas and give relevant suggestions.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-line">
+        <div class="phase-dot later">5</div>
+        <div class="phase-connector"></div>
+      </div>
+      <div class="phase-content">
+        <div class="phase-title">Phase 5 — Action Execution <span class="phase-tag tag-later">Later</span></div>
+        <div class="phase-desc">AI responses include structured commands (JSON) that VBA can parse and execute directly — e.g. "apply font X", "change color to CMYK", "create text frame". Closes the loop.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-line">
+        <div class="phase-dot later">6</div>
+      </div>
+      <div class="phase-content">
+        <div class="phase-title">Phase 6 — VSTA Docker (Optional Upgrade) <span class="phase-tag tag-later">Optional</span></div>
+        <div class="phase-desc">Migrate the chat panel to a proper C# VSTA Docker with WebView2 for a fully native, dockable experience. Same backend server, better frontend.</div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>
