@@ -1,0 +1,62 @@
+{
+  "name": "chirodx-tools",
+  "version": "1.0.0",
+  "description": "ChiroDX AI Tools panel for CorelDRAW",
+  "main": "main.js",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
+    "vite": "vite",
+    "start": "electron .",
+    "build": "vite build",
+    "dist": "vite build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.chirodx.tools",
+    "productName": "ChiroDX Tools",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "assets/icon.ico",
+      "shortcutName": "ChiroDX Tools"
+    },
+    "files": [
+      "dist/**",
+      "main.js",
+      "preload.js",
+      "assets/**"
+    ],
+    "extraResources": [
+      {
+        "from": "../ai-server",
+        "to": "ai-server",
+        "filter": [
+          "**/*",
+          "!node_modules/.bin/**",
+          "!node_modules/.cache/**",
+          "!**/*.log",
+          "!**/npm-debug.log*"
+        ]
+      }
+    ]
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8",
+    "vite": "^6.0.7",
+    "wait-on": "^8.0.1"
+  }
+}

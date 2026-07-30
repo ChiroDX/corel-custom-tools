@@ -1,0 +1,116 @@
+/* ── VS Code Dark Theme ──────────────────────────────────────── */
+:root {
+  --bg-main:          #1e1e1e;
+  --bg-panel:         #252526;
+  --bg-section-head:  #37373d;
+  --bg-input:         #3c3c3c;
+  --bg-input-focus:   #3c3c3c;
+  --bg-btn-primary:   #0e639c;
+  --bg-btn-primary-h: #1177bb;
+  --bg-btn-secondary: #313131;
+  --bg-btn-secondary-h: #3e3e3e;
+  --bg-result:        #252526;
+  --text-primary:     #cccccc;
+  --text-secondary:   #969696;
+  --text-label:       #bbbbbb;
+  --border:           #3e3e3e;
+  --border-input:     #555555;
+  --accent:           #007acc;
+  --green:            #4ec9b0;
+  --red:              #f44747;
+  --orange:           #ce9178;
+  --blue:             #569cd6;
+  --yellow:           #dcdcaa;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+               sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Allow text selection only inside inputs/textareas/results */
+input, textarea, .selectable {
+  user-select: text;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 8px; }
+::-webkit-scrollbar-track  { background: var(--bg-main); }
+::-webkit-scrollbar-thumb  {
+  background: #424242;
+  border-radius: 4px;
+  border: 2px solid var(--bg-main);
+}
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* ── Inputs ──────────────────────────────────────────────────── */
+input[type="text"],
+textarea,
+select {
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+  border-radius: 3px;
+  padding: 5px 8px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23969696' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 24px;
+}
+
+option {
+  background: #2a2a2a;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+button {
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  border: none;
+  border-radius: 3px;
+  transition: background 0.1s, opacity 0.1s;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
