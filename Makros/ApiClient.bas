@@ -8,13 +8,18 @@ Option Explicit
 ' and provides lightweight JSON parsing helpers.
 '
 ' HOW TO USE (one-time setup per PC):
-'   1. Run setup.bat -- it installs the server and copies the
-'      panel (ChiroDXTools.hta) to your AppData folder.
+'   1. Run setup.bat -- it installs the AI server and writes
+'      %APPDATA%\ChiroDX\config.ini.
 '   2. Press Alt+F11 in CorelDraw to open the VBA Editor.
 '   3. In the Project Explorer, select your GMS project (e.g. GlobalMacros).
-'   4. File > Import File -- import THIS file (ApiClient.bas).
+'   4. File > Import File -- import ALL of these:
+'        Makros\ApiClient.bas              (this file)
+'        Makros\modules\ShapeSerializer.bas   (needed by SendSelection)
+'        Makros\modules\ShapeDeserializer.bas (needed by ApplyResult)
+'        Makros\ToolsPanel.frm             (optional in-CorelDraw panel)
 '   5. Close the VBA Editor and restart CorelDraw.
-'   Done! The panel opens automatically every time CorelDraw starts.
+'   AutoExec then starts the server and opens the ChiroDX Tools app
+'   (chiroDX-app\start.bat) on every CorelDraw start.
 ' ============================================================
 
 ' -- Configuration -------------------------------------------
@@ -613,6 +618,16 @@ fail:
 End Sub
 
 ' -- Utility ---------------------------------------------------
+
+' Liveness probe for the COM bridge.
+' chiroDX-app\corel-bridge.mjs (pingCorel) and scripts\run-macro.ps1's GMS
+' auto-detection both call GMSManager.RunMacro(<project>, "Ping"). The sub was
+' never defined, so the call always raised and the Electron panel showed
+' "CorelDraw offline" permanently. It must stay side-effect free: it only has
+' to return without error.
+Public Sub Ping()
+    ' Intentionally empty.
+End Sub
 
 ' Non-blocking wait (milliseconds)
 Private Sub Wait(ByVal ms As Long)

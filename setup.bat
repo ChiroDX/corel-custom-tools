@@ -72,12 +72,14 @@ if not exist "%CONFIG_DIR%" mkdir "%CONFIG_DIR%"
 set "HTA_SRC=%SCRIPT_DIR%Makros\ChiroDXTools.hta"
 set "HTA_DST=%CONFIG_DIR%\ChiroDXTools.hta"
 
+:: The HTA is the fallback panel: AutoExec opens the Electron app, and this
+:: is what you double-click if Node or the app will not start.
 if not exist "%HTA_SRC%" (
     echo  [WARNING] ChiroDXTools.hta not found in Makros folder.
-    echo  The tools panel will not open automatically.
+    echo  The fallback panel will not be available.
 ) else (
     copy /Y "%HTA_SRC%" "%HTA_DST%" >nul
-    echo  [OK] Tools panel copied to: %HTA_DST%
+    echo  [OK] Fallback panel copied to: %HTA_DST%
 )
 
 :: ── Step 5: Write config file ──────────────────────────────
@@ -166,12 +168,17 @@ echo    1. Open CorelDraw
 echo    2. Press Alt+F11 to open the VBA Editor
 echo    3. In the Project Explorer (left panel),
 echo       find "GlobalMacros" or your GMS project
-echo    4. File ^> Import File -- import ONLY:
+echo    4. File ^> Import File -- import these three:
 echo       %SCRIPT_DIR%Makros\ApiClient.bas
+echo       %SCRIPT_DIR%Makros\modules\ShapeSerializer.bas
+echo       %SCRIPT_DIR%Makros\modules\ShapeDeserializer.bas
 echo    5. Close the VBA Editor
 echo    6. Restart CorelDraw -- the panel opens automatically!
 echo.
-echo  That's it! No macros to run, no forms to import.
+echo  ApiClient alone is not enough: "Send Selection" needs
+echo  ShapeSerializer and "Apply from AI" needs ShapeDeserializer.
+echo  Optional: also import Makros\ToolsPanel.frm for the panel
+echo  that lives inside CorelDraw instead of the desktop app.
 echo.
 echo  Config file: %CONFIG_FILE%
 echo  Server log:  check Task Manager for "node.exe" if needed
