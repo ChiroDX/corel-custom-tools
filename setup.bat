@@ -63,11 +63,24 @@ if errorlevel 1 (
     echo  [OK] Dependencies installed
 )
 
-:: ── Step 4: Create config directory + file ───────────────
+:: ── Step 4: Create config directory + copy HTA panel ─────
 set "CONFIG_DIR=%APPDATA%\ChiroDX"
 set "CONFIG_FILE=%CONFIG_DIR%\config.ini"
 
 if not exist "%CONFIG_DIR%" mkdir "%CONFIG_DIR%"
+
+set "HTA_SRC=%SCRIPT_DIR%Makros\ChiroDXTools.hta"
+set "HTA_DST=%CONFIG_DIR%\ChiroDXTools.hta"
+
+if not exist "%HTA_SRC%" (
+    echo  [WARNING] ChiroDXTools.hta not found in Makros folder.
+    echo  The tools panel will not open automatically.
+) else (
+    copy /Y "%HTA_SRC%" "%HTA_DST%" >nul
+    echo  [OK] Tools panel copied to: %HTA_DST%
+)
+
+:: ── Step 5: Write config file ──────────────────────────────
 
 :: Write config file
 (
@@ -84,7 +97,7 @@ if not exist "%CONFIG_DIR%" mkdir "%CONFIG_DIR%"
 
 echo  [OK] Config saved to: %CONFIG_FILE%
 
-:: ── Step 5: Create a VBS launcher (hidden window) ────────
+:: ── Step 6: Create a VBS launcher (hidden window) ────────
 :: We use a small VBS wrapper so node runs truly hidden
 :: (no black terminal window flashing on login)
 set "TASK_NAME=ChiroDX AI Server"
@@ -98,7 +111,7 @@ set "VBS_FILE=%CONFIG_DIR%\start-server.vbs"
 
 echo  [OK] Hidden launcher created
 
-:: ── Step 6: Register Windows Task Scheduler job ──────────
+:: ── Step 7: Register Windows Task Scheduler job ──────────
 echo.
 echo  Registering auto-start task...
 
@@ -115,7 +128,7 @@ if errorlevel 1 (
     echo  [OK] Server will auto-start when you log in
 )
 
-:: ── Step 7: Start the server right now ───────────────────
+:: ── Step 8: Start the server right now ───────────────────
 echo.
 echo  Starting server now...
 start "" wscript.exe "%VBS_FILE%"
@@ -148,17 +161,17 @@ echo    - The AI server starts automatically when you log in
 echo    - In CorelDraw, the Tools panel opens automatically
 echo    - No terminal, no commands, just open CorelDraw
 echo.
-echo  To set up CorelDraw scripts:
+echo  To finish setup in CorelDraw (one-time per PC):
 echo    1. Open CorelDraw
 echo    2. Press Alt+F11 to open the VBA Editor
-echo       (or: Tools ^> Scripts ^> right-click VBA ^> Edit)
-echo    3. In the VBA Editor's Project Explorer (left panel),
+echo    3. In the Project Explorer (left panel),
 echo       find "GlobalMacros" or your GMS project
-echo    4. Go to File ^> Import File
-echo    5. Import these two files:
+echo    4. File ^> Import File -- import ONLY:
 echo       %SCRIPT_DIR%Makros\ApiClient.bas
-echo       %SCRIPT_DIR%Makros\ToolsPanel.frm
-echo    6. Close the editor — done!
+echo    5. Close the VBA Editor
+echo    6. Restart CorelDraw -- the panel opens automatically!
+echo.
+echo  That's it! No macros to run, no forms to import.
 echo.
 echo  Config file: %CONFIG_FILE%
 echo  Server log:  check Task Manager for "node.exe" if needed
