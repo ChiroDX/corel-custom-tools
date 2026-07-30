@@ -73,10 +73,18 @@ export function requireObject(value, field = "request body") {
 }
 
 /**
- * Wrap an async Express handler so rejected promises reach the error handler.
- * Express 5 forwards rejections automatically, but being explicit keeps the
- * behaviour obvious at each call site.
+ * Wrap an Express handler so that both a rejected promise and a synchronous
+ * throw reach the error handler. Express 5 forwards both on its own, but being
+ * explicit keeps the behaviour obvious at each call site and independent of the
+ * Express version.
  */
 export function asyncRoute(handler) {
-  return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
+  return (req, res, next) => {
+    try {
+      Promise.resolve(handler(req, res, next)).catch(next);
+    } catch (err) {
+      // A non-async handler that throws while validating its input.
+      next(err);
+    }
+  };
 }

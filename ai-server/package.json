@@ -1,12 +1,17 @@
 {
   "name": "chirodx-ai-server",
-  "version": "2.0.0",
+  "version": "3.1.0",
   "description": "Local AI server for the ChiroDX CorelDraw plugin",
   "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "lint": "eslint .",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20.6.0"
   },
   "author": "",
   "license": "ISC",
@@ -17,5 +22,10 @@
     "express": "^5.2.1",
     "openai": "^7.2.0",
     "ws": "^8.21.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.0",
+    "globals": "^17.8.0"
   }
 }

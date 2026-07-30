@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { createRequire } from "node:module";
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 import { config } from "dotenv";
@@ -12,7 +13,10 @@ import { ValidationError } from "./utils/validate.js";
 
 config({ quiet: true });
 
-export const SERVER_VERSION = "3.1.0";
+// Single source of truth: package.json. The version used to be duplicated here
+// and had already drifted two majors away from it.
+const { version } = createRequire(import.meta.url)("./package.json");
+export const SERVER_VERSION = version;
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
