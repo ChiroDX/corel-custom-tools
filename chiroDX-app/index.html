@@ -3,14 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="ChiroDX AI tools panel for CorelDRAW: grammar, translation, completeness, colour and font helpers." />
+    <!--
+      Content Security Policy.
+
+      connect-src has to name ws: explicitly: a `http://` source expression does
+      not authorise a WebSocket URL, so the live CorelDraw event stream is
+      blocked without it.
+
+      script-src carries 'unsafe-inline' only because the Vite dev server
+      injects its HMR preamble inline. vite.config.mjs strips it from the
+      production build, where every script is a hashed module file.
+    -->
     <meta http-equiv="Content-Security-Policy"
-          content="default-src 'self' http://localhost:3000;
+          content="default-src 'self';
                    script-src 'self' 'unsafe-inline';
-                   style-src 'self' 'unsafe-inline';" />
+                   style-src 'self' 'unsafe-inline';
+                   img-src 'self' data:;
+                   font-src 'self';
+                   connect-src 'self' http://localhost:3000 ws://localhost:3000 ws://localhost:5173;
+                   object-src 'none';
+                   base-uri 'none';
+                   form-action 'none';
+                   frame-ancestors 'none';" />
     <title>ChiroDX Tools</title>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      This panel needs JavaScript. Close and reopen ChiroDX Tools; if the problem
+      persists, reinstall with setup.bat.
+    </noscript>
     <script type="module" src="/src/index.jsx"></script>
   </body>
 </html>

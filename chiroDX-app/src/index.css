@@ -10,17 +10,26 @@
   --bg-btn-secondary: #313131;
   --bg-btn-secondary-h: #3e3e3e;
   --bg-result:        #252526;
-  --text-primary:     #cccccc;
-  --text-secondary:   #969696;
-  --text-label:       #bbbbbb;
+  /* Text colours are chosen to clear WCAG AA (4.5:1) on --bg-main #1e1e1e:
+     #d4d4d4 ≈ 11.6:1, #b0b0b0 ≈ 7.3:1, #8f8f8f ≈ 4.6:1. */
+  --text-primary:     #d4d4d4;
+  --text-secondary:   #b0b0b0;
+  --text-muted:       #8f8f8f;
+  --text-label:       #d0d0d0;
   --border:           #3e3e3e;
-  --border-input:     #555555;
-  --accent:           #007acc;
+  --border-input:     #6b6b6b;
+  --accent:           #4ea3e0;
+  --focus-ring:       #6cb6ff;
   --green:            #4ec9b0;
   --red:              #f44747;
   --orange:           #ce9178;
   --blue:             #569cd6;
   --yellow:           #dcdcaa;
+
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 10px;
+  --space-4: 16px;
 }
 
 *, *::before, *::after {
@@ -50,6 +59,38 @@ input, textarea, .selectable {
   user-select: text;
 }
 
+/* ── Focus ───────────────────────────────────────────────────── */
+/* The panel floats over CorelDRAW and is often driven by keyboard while the
+   mouse is busy on the canvas, so every interactive element needs a focus ring
+   that is visible against the dark chrome. */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Available to screen readers, invisible on screen. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Respect the OS "reduce motion" setting. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ── Scrollbar ───────────────────────────────────────────────── */
 ::-webkit-scrollbar        { width: 8px; }
 ::-webkit-scrollbar-track  { background: var(--bg-main); }
@@ -72,14 +113,19 @@ select {
   border-radius: 3px;
   padding: 5px 8px;
   width: 100%;
-  outline: none;
   transition: border-color 0.15s;
 }
 
-input[type="text"]:focus,
-textarea:focus,
-select:focus {
+/* Keep the accent border as a second cue, but never remove the focus ring. */
+input[type="text"]:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
   border-color: var(--accent);
+}
+
+::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 textarea {
@@ -111,6 +157,20 @@ button {
 }
 
 button:disabled {
-  opacity: 0.45;
+  opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* Status-bar toggles in the header: look like text, behave like buttons. */
+.status-btn {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font-size: 11px;
+  color: inherit;
+  border-radius: 3px;
+}
+
+.status-btn:hover {
+  background: #2b2b2b;
 }
