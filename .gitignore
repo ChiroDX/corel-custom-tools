@@ -1,14 +1,30 @@
 # Environment variables - NEVER commit these
 .env
+.env.local
 ai-server/.env
 
 # Node dependencies
 node_modules/
-ai-server/node_modules/
+
+# Build / packaging output
+chiroDX-app/dist/
+chiroDX-app/release/
+
+# Alternative lockfiles - this repo standardises on npm (package-lock.json)
+pnpm-lock.yaml
+yarn.lock
 
 # Logs
 *.log
 npm-debug.log*
+
+# VBA editor cruft (CorelDraw writes .bak/.bak2 on re-import, .log on import errors)
+*.bak
+*.bak2
+*.frx.bak
+
+# Claude Code local state / worktrees
+.claude/
 
 # OS files
 .DS_Store
