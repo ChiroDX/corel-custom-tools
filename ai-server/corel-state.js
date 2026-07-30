@@ -15,6 +15,13 @@
 
 const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
+/**
+ * Hard cap on retained sessions. Sessions normally expire on their own, but a
+ * macro stuck in a send loop should not be able to grow this Map without bound.
+ * When the cap is hit the oldest session is dropped.
+ */
+const MAX_SESSIONS = 200;
+
 // Map<sessionId, Session>
 const sessions = new Map();
 
@@ -29,6 +36,15 @@ const wsClients = new Set();
  */
 export function pushSession(payload) {
   const { sessionId } = payload;
+
+  // Evict the oldest entry before growing past the cap (Map preserves
+  // insertion order, so the first key is the least recently pushed).
+  while (sessions.size >= MAX_SESSIONS && !sessions.has(sessionId)) {
+    const oldest = sessions.keys().next().value;
+    sessions.delete(oldest);
+    clearExpiry(oldest);
+  }
+
   sessions.set(sessionId, {
     sessionId,
     status:    'pending',
@@ -152,18 +168,24 @@ export function wsClientCount() {
 
 const expiryTimers = new Map();
 
-function scheduleExpiry(sessionId) {
-  // Clear any existing timer for this session
-  if (expiryTimers.has(sessionId)) {
-    clearTimeout(expiryTimers.get(sessionId));
+function clearExpiry(sessionId) {
+  const timer = expiryTimers.get(sessionId);
+  if (timer) {
+    clearTimeout(timer);
+    expiryTimers.delete(sessionId);
   }
+}
+
+function scheduleExpiry(sessionId) {
+  clearExpiry(sessionId);
   const timer = setTimeout(() => {
-    if (sessions.has(sessionId)) {
-      sessions.delete(sessionId);
-      expiryTimers.delete(sessionId);
+    expiryTimers.delete(sessionId);
+    if (sessions.delete(sessionId)) {
       broadcast({ event: 'session-expired', sessionId });
       console.log(`[CorelAdapter] Session ${sessionId} expired`);
     }
   }, SESSION_TTL_MS);
+  // Don't hold the event loop open purely for a pending expiry.
+  timer.unref?.();
   expiryTimers.set(sessionId, timer);
 }
