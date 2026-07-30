@@ -8,7 +8,12 @@
     "vite": "vite",
     "start": "electron .",
     "build": "vite build",
+    "lint": "eslint .",
+    "test": "node --test \"src/**/*.test.mjs\"",
     "dist": "vite build && electron-builder --win"
+  },
+  "engines": {
+    "node": ">=20.6.0"
   },
   "build": {
     "appId": "com.chirodx.tools",
@@ -30,6 +35,8 @@
       "dist/**",
       "main.js",
       "preload.js",
+      "corel-bridge.mjs",
+      "scripts/**",
       "assets/**"
     ],
     "extraResources": [
@@ -41,7 +48,12 @@
           "!node_modules/.bin/**",
           "!node_modules/.cache/**",
           "!**/*.log",
-          "!**/npm-debug.log*"
+          "!**/npm-debug.log*",
+          "!test/**",
+          "!eslint.config.mjs",
+          "!.env",
+          "!.env.*",
+          ".env.example"
         ]
       }
     ]
@@ -50,12 +62,19 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
+  "overrides": {
+    "brace-expansion": "^5.0.9"
+  },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@vitejs/plugin-react": "^6.0.5",
     "concurrently": "^10.0.4",
     "cross-env": "^10.1.0",
     "electron": "^43.2.0",
     "electron-builder": "^26.15.3",
+    "eslint": "^10.8.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.8.0",
     "vite": "^8.2.0",
     "wait-on": "^9.1.0"
   }

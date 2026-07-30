@@ -6,7 +6,7 @@
  * without the user needing to switch windows.
  *
  * Usage (in main.js IPC handlers):
- *   import { runCorelMacro, pingCorel } from './corel-bridge.js'
+ *   import { runCorelMacro, pingCorel } from './corel-bridge.mjs'
  *
  *   await runCorelMacro('ApplyResult')   // triggers VBA ApplyResult sub
  *   const ok = await pingCorel()         // returns true if CorelDraw is reachable

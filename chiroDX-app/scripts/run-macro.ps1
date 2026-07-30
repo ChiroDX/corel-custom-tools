@@ -1,7 +1,7 @@
 # ChiroDX  --  CorelDraw COM Bridge  v1.0
 # ──────────────────────────────────────────
 # Triggers a VBA macro in the running CorelDraw instance via COM automation.
-# Called by corel-bridge.js (Node.js) when the Electron user clicks "Apply".
+# Called by corel-bridge.mjs (Node.js) when the Electron user clicks "Apply".
 #
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File run-macro.ps1 -MacroName ApplyResult

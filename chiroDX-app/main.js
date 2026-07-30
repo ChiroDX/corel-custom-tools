@@ -4,12 +4,13 @@ const os = require('node:os');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 
-// CorelDraw COM bridge (ES module — loaded dynamically to avoid require() issues)
+// CorelDraw COM bridge. It is an ES module (.mjs) while this file is CommonJS,
+// so it can only be pulled in with a dynamic import.
 let corelBridgePromise = null;
 function getCorelBridge() {
   // Cache the promise, not the module: two concurrent IPC calls during startup
   // would otherwise each kick off their own import().
-  corelBridgePromise ??= import('./corel-bridge.js');
+  corelBridgePromise ??= import('./corel-bridge.mjs');
   return corelBridgePromise;
 }
 
