@@ -1,0 +1,478 @@
+<html>
+<head>
+<title>ChiroDX Tools</title>
+<HTA:APPLICATION
+    APPLICATIONNAME="ChiroDX Tools"
+    BORDER="thin"
+    CAPTION="yes"
+    MAXIMIZEBUTTON="no"
+    MINIMIZEBUTTON="yes"
+    SCROLL="auto"
+    SINGLEINSTANCE="yes"
+    SYSMENU="yes"
+    WINDOWSTATE="normal"
+/>
+<style>
+  body {
+    font-family: Segoe UI, Tahoma, sans-serif;
+    font-size: 11px;
+    margin: 4px;
+    background: #f5f5f5;
+    color: #222;
+  }
+  #statusBar {
+    font-size: 10px;
+    padding: 2px 4px;
+    margin-bottom: 4px;
+    border-radius: 3px;
+    background: #e8e8e8;
+  }
+  fieldset {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin: 3px 0;
+    padding: 4px 6px 6px 6px;
+  }
+  legend {
+    font-weight: bold;
+    font-size: 10px;
+    color: #444;
+    padding: 0 4px;
+  }
+  button {
+    width: 100%;
+    margin: 2px 0;
+    padding: 4px 2px;
+    cursor: pointer;
+    background: #e1e1e1;
+    border: 1px solid #aaa;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+  button:hover { background: #d0d8f0; border-color: #77a; }
+  button:disabled { color: #999; cursor: default; }
+  select, input[type=text] {
+    width: 100%;
+    font-size: 11px;
+    margin: 2px 0;
+    box-sizing: border-box;
+    border: 1px solid #bbb;
+    border-radius: 2px;
+    padding: 2px;
+  }
+  textarea {
+    width: 100%;
+    font-size: 11px;
+    margin: 2px 0;
+    box-sizing: border-box;
+    border: 1px solid #bbb;
+    border-radius: 2px;
+    resize: vertical;
+    padding: 2px;
+  }
+  .row { display: flex; gap: 3px; margin: 2px 0; }
+  .row select, .row input { flex: 1; margin: 0; }
+  .row label { white-space: nowrap; line-height: 22px; margin-right: 2px; }
+  .halfbtn { width: calc(50% - 2px); }
+  #lstResults {
+    width: 100%;
+    height: 72px;
+    font-size: 10px;
+    font-family: Consolas, monospace;
+    border: 1px solid #bbb;
+    border-radius: 2px;
+    box-sizing: border-box;
+    margin: 2px 0;
+  }
+  .btnrow { display: flex; gap: 3px; }
+  .btnrow button { flex: 1; margin: 0; }
+</style>
+</head>
+<body>
+
+<div id="statusBar">Checking server...</div>
+
+<!-- TEXT TOOLS -->
+<fieldset>
+  <legend>Text Tools</legend>
+  <button onclick="grammarCheck()">Grammar Check</button>
+  <button onclick="priceFormatCheck()">Price Format Check</button>
+  <div class="row">
+    <label>Doc&nbsp;type:</label>
+    <select id="cmbDocType">
+      <option value="menu">menu</option>
+      <option value="businessCard">businessCard</option>
+      <option value="flyer">flyer</option>
+      <option value="poster">poster</option>
+      <option value="invoice">invoice</option>
+    </select>
+  </div>
+  <button onclick="completenessCheck()">Completeness Check</button>
+  <div class="row">
+    <label>Translate&nbsp;to:</label>
+    <select id="cmbTargetLang">
+      <option value="en">en (English)</option>
+      <option value="de">de (German)</option>
+      <option value="fr">fr (French)</option>
+      <option value="vi">vi (Vietnamese)</option>
+      <option value="tr">tr (Turkish)</option>
+      <option value="es">es (Spanish)</option>
+      <option value="it">it (Italian)</option>
+      <option value="ar">ar (Arabic)</option>
+      <option value="zh">zh (Chinese)</option>
+      <option value="pl">pl (Polish)</option>
+      <option value="nl">nl (Dutch)</option>
+    </select>
+  </div>
+  <button onclick="translateSelection()">Translate Selection</button>
+</fieldset>
+
+<!-- IMAGE & COLOR TOOLS -->
+<fieldset>
+  <legend>Image &amp; Color Tools</legend>
+  <textarea id="txtPrompt" rows="3" placeholder="Image description or mood/style for palette..."></textarea>
+  <button onclick="generateImage()">Generate Image (DALL-E 3)</button>
+  <div class="btnrow">
+    <button onclick="colorFromDesc()">Generate Color Palette</button>
+    <button onclick="colorFromImage()">Extract from Image</button>
+  </div>
+</fieldset>
+
+<!-- FONT TOOLS -->
+<fieldset>
+  <legend>Font Tools</legend>
+  <div class="btnrow">
+    <input type="text" id="txtHeaderFont" value="e.g. Playfair Display" style="flex:2">
+    <button onclick="fontPairing()" style="flex:1;width:auto">Find Pairings</button>
+  </div>
+</fieldset>
+
+<!-- SETTINGS -->
+<fieldset>
+  <legend>Settings</legend>
+  <div class="row">
+    <label>AI&nbsp;Model:</label>
+    <select id="cmbModel">
+      <option value="gpt-4o-mini">gpt-4o-mini (Fast &amp; Cheap)</option>
+      <option value="gpt-4o">gpt-4o (Best Quality)</option>
+      <option value="claude-haiku">claude-haiku (Anthropic)</option>
+      <option value="ollama">ollama (Local / Private)</option>
+    </select>
+  </div>
+</fieldset>
+
+<!-- RESULTS -->
+<fieldset>
+  <legend>Results</legend>
+  <select id="lstResults" size="5"></select>
+  <div class="btnrow">
+    <button id="btnApply" onclick="applyFix()" disabled>Apply Fix</button>
+    <button onclick="clearResults()">Clear</button>
+  </div>
+</fieldset>
+
+<script language="JScript">
+// ============================================================
+// ChiroDX Tools Panel v2.0 — HTA Edition
+// Communicates with the local Node.js AI server and
+// with CorelDRAW via COM automation.
+// ============================================================
+
+var SERVER   = "http://localhost:3000";
+var m_results = [];   // {display, original, suggestion, canApply}
+var g_corel  = null;  // cached CorelDRAW COM reference
+
+// ---- Window size -------------------------------------------
+window.resizeTo(300, 680);
+
+// ---- CorelDRAW COM -----------------------------------------
+function getCorel() {
+    if (g_corel) {
+        try { var t = g_corel.Version; return g_corel; } catch(e) { g_corel = null; }
+    }
+    try {
+        g_corel = GetObject("", "CorelDRAW.Application");
+        return g_corel;
+    } catch(e) {
+        try {
+            // Version-specific fallback (adjust year as needed)
+            g_corel = new ActiveXObject("CorelDRAW.Application");
+            return g_corel;
+        } catch(e2) {
+            alert("Cannot connect to CorelDRAW.\nMake sure CorelDRAW is open.\n\n" + e2.message);
+            return null;
+        }
+    }
+}
+
+function getSelectedText() {
+    var corel = getCorel(); if (!corel) return "";
+    try { return corel.ActiveSelection.Text.Story.Text; } catch(e) { return ""; }
+}
+
+function getAllPageText() {
+    var corel = getCorel(); if (!corel) return "";
+    var out = "";
+    try {
+        var shapes = corel.ActivePage.Shapes;
+        for (var i = 1; i <= shapes.Count; i++) {
+            var sh = shapes.Item(i);
+            try {
+                if (sh.Type === 9) out += sh.Text.Story.Text + "\n"; // cdrTextShape = 9
+            } catch(e) {}
+        }
+    } catch(e) {}
+    return out.trim();
+}
+
+function applyTextFix(original, replacement) {
+    var corel = getCorel(); if (!corel) return;
+    try {
+        var story = corel.ActiveSelection.Text.Story;
+        var idx = story.Text.indexOf(original);
+        if (idx >= 0) {
+            var rng = story.Characters(idx + 1, original.length);
+            rng.Text = replacement;
+        }
+    } catch(e) { alert("Could not apply fix: " + e.message); }
+}
+
+function placeImageOnCanvas(filePath) {
+    var corel = getCorel(); if (!corel) return;
+    try {
+        var imp = corel.ActiveDocument.ActiveLayer.Import(filePath);
+        imp.Finish();
+        var s = corel.ActiveSelection;
+        if (s) s.SetPosition(corel.ActivePage.SizeWidth / 2, corel.ActivePage.SizeHeight / 2);
+    } catch(e) {}
+}
+
+// ---- HTTP --------------------------------------------------
+function httpGet(endpoint) {
+    try {
+        var xhr = new ActiveXObject("MSXML2.XMLHTTP.6.0");
+        xhr.open("GET", SERVER + endpoint, false);
+        xhr.setTimeouts(5000, 5000, 5000, 5000);
+        xhr.send();
+        if (xhr.status === 200) return JSON.parse(xhr.responseText);
+    } catch(e) {}
+    return null;
+}
+
+function httpPost(endpoint, data) {
+    try {
+        var xhr = new ActiveXObject("MSXML2.XMLHTTP.6.0");
+        xhr.open("POST", SERVER + endpoint, false);
+        xhr.setTimeouts(5000, 5000, 60000, 60000);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(JSON.stringify(data));
+        if (xhr.status === 200) return JSON.parse(xhr.responseText);
+    } catch(e) {}
+    return null;
+}
+
+// ---- Status bar --------------------------------------------
+function setStatus(msg, color) {
+    var el = document.getElementById("statusBar");
+    el.innerText = "  " + msg;
+    el.style.color = color || "#555";
+    el.style.background = color === "green" ? "#d4edda"
+                        : color === "red"   ? "#f8d7da"
+                        : "#e8e8e8";
+}
+
+function checkServer() {
+    var resp = httpGet("/health");
+    if (resp && resp.status === "ok") {
+        setStatus("Server online", "green");
+        return true;
+    }
+    setStatus("Server offline -- run setup.bat", "red");
+    return false;
+}
+
+// ---- Results list ------------------------------------------
+function clearResults() {
+    m_results = [];
+    var sel = document.getElementById("lstResults");
+    sel.options.length = 0;
+    document.getElementById("btnApply").disabled = true;
+}
+
+function addResult(display, original, suggestion, canApply) {
+    m_results.push({ display: display, original: original || "",
+                     suggestion: suggestion || "", canApply: !!canApply });
+    var sel = document.getElementById("lstResults");
+    var opt = document.createElement("option");
+    opt.text = display;
+    sel.add(opt);
+    if (canApply) document.getElementById("btnApply").disabled = false;
+}
+
+// ---- Helpers -----------------------------------------------
+function getModel()   { return document.getElementById("cmbModel").value; }
+function getDocType() { return document.getElementById("cmbDocType").value; }
+function getLang()    { return document.getElementById("cmbTargetLang").value; }
+
+// ---- TEXT TOOLS --------------------------------------------
+function grammarCheck() {
+    var txt = getSelectedText();
+    if (!txt) { alert("Please select a text frame on the canvas first."); return; }
+    setStatus("Checking grammar...");
+    clearResults();
+    var resp = httpPost("/text/grammar", { text: txt, model: getModel() });
+    if (!resp) { addResult("Error: Could not reach server."); checkServer(); return; }
+    if (resp.count === 0) { addResult("No grammar issues found!"); }
+    else {
+        (resp.issues || []).forEach(function(issue) {
+            if (issue.original && issue.suggestion) {
+                var t = (issue.type || "?")[0].toUpperCase();
+                addResult('[' + t + '] "' + issue.original + '" -> "' + issue.suggestion + '"  (' + issue.explanation + ')',
+                          issue.original, issue.suggestion, true);
+            }
+        });
+    }
+    checkServer();
+}
+
+function priceFormatCheck() {
+    var txt = getAllPageText();
+    if (!txt) { alert("No text found on the current page."); return; }
+    setStatus("Checking price formats...");
+    clearResults();
+    var resp = httpPost("/text/price-format", { text: txt, model: getModel() });
+    if (!resp) { addResult("Error: Could not reach server."); checkServer(); return; }
+    if (resp.count === 0) { addResult("Prices look consistent!"); }
+    else {
+        (resp.issues || []).forEach(function(issue) {
+            if (issue.original) {
+                addResult('[PRICE] "' + issue.original + '" -> "' + issue.suggestion + '"  (' + issue.explanation + ')',
+                          issue.original, issue.suggestion, !!issue.suggestion);
+            }
+        });
+    }
+    checkServer();
+}
+
+function completenessCheck() {
+    var txt = getAllPageText();
+    if (!txt) { alert("No text found on the current page."); return; }
+    setStatus("Checking completeness...");
+    clearResults();
+    var resp = httpPost("/text/completeness", { text: txt, documentType: getDocType(), model: getModel() });
+    if (!resp) { addResult("Error: Could not reach server."); checkServer(); return; }
+    addResult("Score: " + resp.score + "% complete");
+    (resp.missingLabels || []).forEach(function(l) { if (l) addResult("[MISSING] " + l); });
+    (resp.presentLabels || []).forEach(function(l) { if (l) addResult("[OK]  " + l); });
+    (resp.notes         || []).forEach(function(n) { if (n) addResult("[NOTE] " + n); });
+    checkServer();
+}
+
+function translateSelection() {
+    var txt = getSelectedText();
+    if (!txt) { alert("Please select a text frame on the canvas first."); return; }
+    setStatus("Translating...");
+    clearResults();
+    var resp = httpPost("/text/translate", { text: txt, targetLanguage: getLang(), model: getModel() });
+    if (!resp || !resp.translatedText) { addResult("Could not retrieve translation."); checkServer(); return; }
+    resp.translatedText.split("\n").forEach(function(l) { if (l.trim()) addResult(l); });
+    if (confirm("Apply translation to selected text frame?")) {
+        var corel = getCorel();
+        if (corel) {
+            try { corel.ActiveSelection.Text.Story.Text = resp.translatedText; } catch(e) {}
+        }
+    }
+    checkServer();
+}
+
+// ---- IMAGE & COLOR TOOLS -----------------------------------
+function generateImage() {
+    var prompt = document.getElementById("txtPrompt").value.trim();
+    if (!prompt) { alert("Enter an image description in the prompt box first."); return; }
+    setStatus("Generating image (this may take 20-30s)...");
+    clearResults();
+    var resp = httpPost("/image/generate", { prompt: prompt, size: "1024x1024" });
+    if (!resp) { addResult("Error: Could not reach server."); checkServer(); return; }
+    if (!resp.ok) { addResult("Error: " + resp.error); checkServer(); return; }
+    addResult("Image saved: " + resp.localPath);
+    if (resp.revisedPrompt && resp.revisedPrompt !== prompt)
+        addResult("DALL-E prompt: " + resp.revisedPrompt.substr(0, 120) + "...");
+    placeImageOnCanvas(resp.localPath);
+    checkServer();
+}
+
+function colorFromDesc() {
+    var desc = document.getElementById("txtPrompt").value.trim();
+    if (!desc) { alert("Enter a mood or style description in the prompt box first.\nExample: \"Upscale Vietnamese restaurant, warm evening\""); return; }
+    setStatus("Generating color palette...");
+    clearResults();
+    var resp = httpPost("/image/color-palette-generate", { description: desc, model: getModel() });
+    if (!resp) { addResult("Error: Could not reach server."); checkServer(); return; }
+    (resp.colors || []).forEach(function(c) {
+        if (c.hex) addResult(c.hex + "  " + c.name + "  [" + c.role + "]  CMYK(" + c.c + "," + c.m + "," + c.y + "," + c.k + ")");
+    });
+    if (m_results.length === 0) addResult("Could not generate palette.");
+    checkServer();
+}
+
+function colorFromImage() {
+    var corel = getCorel(); if (!corel) return;
+    var sel;
+    try { sel = corel.ActiveSelection; } catch(e) { alert("Please select a bitmap on the canvas first."); return; }
+    if (!sel) { alert("Please select a bitmap on the canvas first."); return; }
+    // Export selected bitmap to temp PNG
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var tmpPath = fso.GetSpecialFolder(2) + "\\chiroDX_extract_" + (new Date()).getTime() + ".png";
+    try {
+        var ef = sel.Export(tmpPath, 5); // 5 = cdrPNG in most CorelDRAW versions
+        ef.Finish();
+    } catch(e) { alert("Could not export bitmap: " + e.message + "\nMake sure you have a bitmap selected."); return; }
+    setStatus("Extracting colors from image...");
+    clearResults();
+    var resp = httpPost("/image/color-palette", { imagePath: tmpPath });
+    if (!resp) { addResult("Error: Could not reach server."); checkServer(); return; }
+    (resp.colors || []).forEach(function(c) {
+        if (c.hex) addResult(c.hex + "  " + c.name + "  CMYK(" + c.c + "," + c.m + "," + c.y + "," + c.k + ")");
+    });
+    if (m_results.length === 0) addResult("Could not extract colors.");
+    checkServer();
+}
+
+// ---- FONT TOOLS --------------------------------------------
+function fontPairing() {
+    var font = document.getElementById("txtHeaderFont").value.trim();
+    if (!font || font === "e.g. Playfair Display") { alert("Enter your header/headline font name first."); return; }
+    setStatus("Finding font pairings...");
+    clearResults();
+    var resp = httpPost("/text/font-pairing", { headerFont: font, documentType: getDocType(), model: getModel() });
+    if (!resp) { addResult("Error: Could not reach server."); checkServer(); return; }
+    (resp.suggestions || []).forEach(function(s) {
+        if (s.font) {
+            var note = (s.googleFonts === "true" || s.googleFonts === true) ? " [Google Fonts]" : "";
+            addResult(s.font + "  (" + s.style + ")" + note);
+            addResult("   " + s.reason);
+        }
+    });
+    if (m_results.length === 0) addResult("Could not retrieve suggestions.");
+    checkServer();
+}
+
+// ---- RESULTS ACTIONS ---------------------------------------
+function applyFix() {
+    var sel = document.getElementById("lstResults");
+    var idx = sel.selectedIndex;
+    if (idx < 0 || idx >= m_results.length) { alert("Select a result item first."); return; }
+    var item = m_results[idx];
+    if (!item.canApply) { alert("This result has no automatic fix to apply."); return; }
+    applyTextFix(item.original, item.suggestion);
+    sel.options[idx].text = "[APPLIED] " + item.display;
+    m_results[idx].canApply = false;
+}
+
+// ---- Init --------------------------------------------------
+window.onload = function() {
+    checkServer();
+};
+</script>
+</body>
+</html>

@@ -2,26 +2,28 @@ Attribute VB_Name = "ApiClient"
 Option Explicit
 
 ' ============================================================
-' ChiroDX AI Server — VBA API Client  v2.0
+' ChiroDX AI Server -- VBA API Client  v2.0
 ' ============================================================
 ' Handles all HTTP communication with the local AI server
 ' and provides lightweight JSON parsing helpers.
 '
-' HOW TO USE:
-'   1. Press Alt+F11 in CorelDraw to open the VBA Editor
-'   2. In the Project Explorer, select your GMS project (e.g. GlobalMacros)
-'   3. File > Import File — import this .bas file
-'   4. File > Import File — import ToolsPanel.frm
-'   5. Close the editor. AutoExec runs on next CorelDraw start.
+' HOW TO USE (one-time setup per PC):
+'   1. Run setup.bat -- it installs the server and copies the
+'      panel (ChiroDXTools.hta) to your AppData folder.
+'   2. Press Alt+F11 in CorelDraw to open the VBA Editor.
+'   3. In the Project Explorer, select your GMS project (e.g. GlobalMacros).
+'   4. File > Import File -- import THIS file (ApiClient.bas).
+'   5. Close the VBA Editor and restart CorelDraw.
+'   Done! The panel opens automatically every time CorelDraw starts.
 ' ============================================================
 
-' ── Configuration ───────────────────────────────────────────
+' -- Configuration -------------------------------------------
 Public Const SERVER_URL     As String = "http://localhost:3000"
-Public Const SERVER_TIMEOUT As Long   = 60000   ' ms (60 s — AI calls can be slow)
+Public Const SERVER_TIMEOUT As Long   = 60000   ' ms (60 s -- AI calls can be slow)
 Public Const STARTUP_WAIT   As Integer = 20      ' half-second attempts to wait for server
 Public Const CONFIG_FILE    As String = "ChiroDX\config.ini"  ' relative to %APPDATA%
 
-' ── Config file reader ──────────────────────────────────────
+' -- Config file reader --------------------------------------
 ' Reads a value from %APPDATA%\ChiroDX\config.ini
 ' Format: simple INI with [section] headers and key=value lines
 ' Returns empty string if not found.
@@ -83,7 +85,7 @@ nextLine:
     ReadConfigValue = ""
 End Function
 
-' ── AutoExec — runs automatically when CorelDraw starts ─────
+' -- AutoExec -- runs automatically when CorelDraw starts -----
 ' Name this sub "AutoExec" so CorelDraw calls it on startup.
 ' It reads the server path from the config file, starts the
 ' server if needed, and optionally opens the ToolsPanel.
@@ -100,21 +102,21 @@ Public Sub AutoExec()
                     "\Documents\ChiroDX\corel-custom-tools\ai-server"
     End If
 
-    ' Try to start the server (silently — no errors if it fails)
+    ' Try to start the server (silently -- no errors if it fails)
     EnsureServerRunning serverDir
 
     ' Check if we should auto-open the panel
     Dim autoOpen As String
     autoOpen = ReadConfigValue("settings", "auto_open_panel")
 
-    If LCase(autoOpen) = "true" Then
+    If LCase(autoOpen) <> "false" Then
         ShowToolsPanel
     End If
 
     On Error GoTo 0
 End Sub
 
-' ── Server auto-start ───────────────────────────────────────
+' -- Server auto-start ---------------------------------------
 
 ' Call this from the panel's Open event.
 ' serverDir: full path to the ai-server folder
@@ -142,7 +144,7 @@ Public Function IsServerRunning() As Boolean
                     Or InStr(resp, """status"": ""ok""") > 0)
 End Function
 
-' ── HTTP helpers ────────────────────────────────────────────
+' -- HTTP helpers --------------------------------------------
 
 Public Function HttpGet(ByVal endpoint As String) As String
     On Error GoTo fail
@@ -171,9 +173,29 @@ fail:
     HttpPost = ""
 End Function
 
-' ── Tool call wrappers ───────────────────────────────────────
+' UTF-8 safe POST -- use this for any payload containing non-ASCII characters
+' (German umlauts, special chars, etc.)
+'
+' MSXML2.ServerXMLHTTP.6.0 converts the VBA Unicode string to UTF-8 internally
+' when "charset=utf-8" is declared in the Content-Type header -- no ADODB needed.
+' (ADODB.Stream adds a BOM that breaks JSON parsers, so we avoid it entirely.)
+Public Function HttpPostUtf8(ByVal endpoint As String, ByVal jsonBody As String) As String
+    On Error GoTo fail
+    Dim http As Object
+    Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+    http.Open "POST", SERVER_URL & endpoint, False
+    http.setTimeouts 5000, 5000, SERVER_TIMEOUT, SERVER_TIMEOUT
+    http.setRequestHeader "Content-Type", "application/json; charset=utf-8"
+    http.send jsonBody
+    HttpPostUtf8 = http.responseText
+    Exit Function
+fail:
+    HttpPostUtf8 = ""
+End Function
 
-' Grammar check — returns raw JSON response string
+' -- Tool call wrappers ---------------------------------------
+
+' Grammar check -- returns raw JSON response string
 Public Function CheckGrammar(ByVal text As String, _
                               Optional ByVal model As String = "gpt-4o-mini") As String
     Dim body As String
@@ -182,7 +204,7 @@ Public Function CheckGrammar(ByVal text As String, _
     CheckGrammar = HttpPost("/text/grammar", body)
 End Function
 
-' Completeness check — returns raw JSON response string
+' Completeness check -- returns raw JSON response string
 Public Function CheckCompleteness(ByVal text As String, _
                                    ByVal docType As String, _
                                    Optional ByVal model As String = "gpt-4o-mini") As String
@@ -193,7 +215,7 @@ Public Function CheckCompleteness(ByVal text As String, _
     CheckCompleteness = HttpPost("/text/completeness", body)
 End Function
 
-' Translation — returns raw JSON response string
+' Translation -- returns raw JSON response string
 Public Function TranslateText(ByVal text As String, _
                                ByVal targetLang As String, _
                                Optional ByVal model As String = "gpt-4o-mini") As String
@@ -204,7 +226,7 @@ Public Function TranslateText(ByVal text As String, _
     TranslateText = HttpPost("/text/translate", body)
 End Function
 
-' Price format check — returns raw JSON response string
+' Price format check -- returns raw JSON response string
 Public Function CheckPriceFormat(ByVal text As String, _
                                   Optional ByVal model As String = "gpt-4o-mini") As String
     Dim body As String
@@ -213,7 +235,7 @@ Public Function CheckPriceFormat(ByVal text As String, _
     CheckPriceFormat = HttpPost("/text/price-format", body)
 End Function
 
-' Font pairing — returns raw JSON response string
+' Font pairing -- returns raw JSON response string
 Public Function GetFontPairing(ByVal headerFont As String, _
                                 ByVal docType As String, _
                                 Optional ByVal model As String = "gpt-4o-mini") As String
@@ -224,7 +246,7 @@ Public Function GetFontPairing(ByVal headerFont As String, _
     GetFontPairing = HttpPost("/text/font-pairing", body)
 End Function
 
-' Image generation — returns raw JSON response string
+' Image generation -- returns raw JSON response string
 Public Function GenerateImage(ByVal prompt As String, _
                                Optional ByVal size As String = "1024x1024") As String
     Dim body As String
@@ -249,10 +271,10 @@ Public Function GenerateColorPalette(ByVal description As String, _
     GenerateColorPalette = HttpPost("/image/color-palette-generate", body)
 End Function
 
-' ── JSON helpers ─────────────────────────────────────────────
+' -- JSON helpers ---------------------------------------------
 
 ' Extract a string value by key from a flat JSON object.
-' JsonGetString("{""name"":""hello""}", "name") → "hello"
+' JsonGetString("{""name"":""hello""}", "name") -> "hello"
 Public Function JsonGetString(ByVal json As String, ByVal key As String) As String
     Dim pos As Long, endPos As Long
     Dim patterns(1) As String
@@ -303,7 +325,7 @@ Public Function JsonGetBool(ByVal json As String, ByVal key As String) As Boolea
 End Function
 
 ' Extract a JSON array (as raw string) by key.
-' JsonGetArray("{""items"":[""a"",""b""]}", "items") → "[""a"",""b""]"
+' JsonGetArray("{""items"":[""a"",""b""]}", "items") -> "[""a"",""b""]"
 Public Function JsonGetArray(ByVal json As String, ByVal key As String) As String
     Dim pos As Long, depth As Integer
     Dim inStr As Boolean
@@ -342,7 +364,7 @@ Public Function JsonGetArray(ByVal json As String, ByVal key As String) As Strin
 End Function
 
 ' Split a JSON string array into a VBA String array.
-' JsonSplitArray("[""a"",""b"",""c""]") → ("a", "b", "c")
+' JsonSplitArray("[""a"",""b"",""c""]") -> ("a", "b", "c")
 Public Function JsonSplitArray(ByVal jsonArr As String) As String()
     Dim result() As String
     jsonArr = Trim(jsonArr)
@@ -395,7 +417,7 @@ Public Function JsonSplitArray(ByVal jsonArr As String) As String()
     JsonSplitArray = result
 End Function
 
-' ── JSON objects array helpers ────────────────────────────────
+' -- JSON objects array helpers --------------------------------
 
 ' Split a JSON array of objects into individual object strings.
 ' Use before calling JsonGetString on each object.
@@ -466,7 +488,7 @@ Public Function JsonSplitObjects(ByVal jsonArr As String) As String()
     JsonSplitObjects = result
 End Function
 
-' ── String helpers ────────────────────────────────────────────
+' -- String helpers --------------------------------------------
 
 ' Escape a string for embedding in a JSON value
 Public Function EscapeJson(ByVal s As String) As String
@@ -488,7 +510,38 @@ Public Function UnescapeJson(ByVal s As String) As String
     UnescapeJson = s
 End Function
 
-' ── CorelDraw canvas helpers ──────────────────────────────────
+' -- Adapter entry points -------------------------------------
+' These two subs are called by the ToolsPanel "Send" / "Apply" buttons.
+' They delegate to ShapeSerializer.bas and ShapeDeserializer.bas.
+
+Public Sub SendSelection()
+    ' Requires ShapeSerializer.bas to be imported
+    On Error GoTo notImported
+    Dim sid As String
+    sid = SendSelectionToServer()
+    If Len(sid) > 0 Then
+        MsgBox "Selection sent!" & vbCrLf & "Check the ChiroDX app, then click 'Apply from AI' when done.", _
+               vbInformation, "ChiroDX"
+    End If
+    Exit Sub
+notImported:
+    MsgBox "ShapeSerializer module not found." & vbCrLf & _
+           "Please import ShapeSerializer.bas into the VBA project.", _
+           vbExclamation, "ChiroDX"
+End Sub
+
+Public Sub ApplyResult()
+    ' Requires ShapeDeserializer.bas to be imported
+    On Error GoTo notImported
+    ApplyResultFromServer
+    Exit Sub
+notImported:
+    MsgBox "ShapeDeserializer module not found." & vbCrLf & _
+           "Please import ShapeDeserializer.bas into the VBA project.", _
+           vbExclamation, "ChiroDX"
+End Sub
+
+' -- CorelDraw canvas helpers ----------------------------------
 
 ' Get all text from all text frames on the current page
 Public Function GetAllPageText() As String
@@ -559,7 +612,7 @@ fail:
     MsgBox "Could not place image: " & Err.Description, vbExclamation
 End Sub
 
-' ── Utility ───────────────────────────────────────────────────
+' -- Utility ---------------------------------------------------
 
 ' Non-blocking wait (milliseconds)
 Private Sub Wait(ByVal ms As Long)
@@ -570,7 +623,34 @@ Private Sub Wait(ByVal ms As Long)
     Loop
 End Sub
 
-' Open the ToolsPanel (call this from a toolbar button or macro)
+' Open the ChiroDX Tools panel (Electron app)
+' Looks for start.bat relative to the configured macros path,
+' or falls back to the default Documents location.
 Public Sub ShowToolsPanel()
-    ToolsPanel.Show vbModeless
+    ' Try config file first
+    Dim macrosPath As String
+    macrosPath = ReadConfigValue("macros", "macros_path")
+
+    ' Fallback to Documents default
+    If Len(macrosPath) = 0 Then
+        macrosPath = Environ("USERPROFILE") & _
+                     "\Documents\ChiroDX\corel-custom-tools\Makros"
+    End If
+
+    ' start.bat lives one level up from Makros, inside chiroDX-app/
+    Dim appDir As String
+    appDir = Left(macrosPath, InStrRev(macrosPath, "\")) & "chiroDX-app"
+
+    Dim batPath As String
+    batPath = appDir & "\start.bat"
+
+    If Dir(batPath) <> "" Then
+        ' Launch via cmd so the .bat runs correctly (hidden window)
+        Shell "cmd /c """ & batPath & """", vbHide
+    Else
+        MsgBox "ChiroDX app not found at:" & vbCrLf & batPath & vbCrLf & vbCrLf & _
+               "Please run setup.bat first, then restart CorelDraw.", _
+               vbExclamation, "ChiroDX Tools"
+    End If
 End Sub
+

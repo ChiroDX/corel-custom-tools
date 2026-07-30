@@ -17,13 +17,40 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} ToolsPanel
       Width        =   3840
    End
 
-   ' ── TEXT TOOLS ───────────────────────────────────────────
+   Begin {6E182020-7FEC-11CE-9BD9-0000E202599C} fraAdapter
+      Caption      =   "AI App  (Send / Apply)"
+      Height       =   780
+      Left         =   60
+      TabIndex     =   25
+      Top          =   420
+      Width        =   3840
+
+      Begin {D7053240-CE69-11CD-A777-00DD01143C57} btnSendToAI
+         Caption   =   "Send Selection  \u2192  AI App"
+         Height    =   360
+         Left      =   120
+         TabIndex  =   26
+         Top       =   240
+         Width     =   1740
+      End
+
+      Begin {D7053240-CE69-11CD-A777-00DD01143C57} btnApplyFromAI
+         Caption   =   "Apply from AI App"
+         Height    =   360
+         Left      =   1980
+         TabIndex  =   27
+         Top       =   240
+         Width     =   1740
+      End
+
+   End
+
    Begin {6E182020-7FEC-11CE-9BD9-0000E202599C} fraText
       Caption      =   "Text Tools"
       Height       =   3000
       Left         =   60
       TabIndex     =   1
-      Top          =   420
+      Top          =   1260
       Width        =   3840
 
       Begin {D7053240-CE69-11CD-A777-00DD01143C57} btnGrammar
@@ -100,13 +127,12 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} ToolsPanel
 
    End
 
-   ' ── IMAGE TOOLS ──────────────────────────────────────────
    Begin {6E182020-7FEC-11CE-9BD9-0000E202599C} fraImage
       Caption      =   "Image & Color Tools"
       Height       =   2280
       Left         =   60
       TabIndex     =   10
-      Top          =   3480
+      Top          =   4320
       Width        =   3840
 
       Begin {8BD21D10-EC42-11CE-9E0D-00AA006002F3} txtPrompt
@@ -149,13 +175,12 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} ToolsPanel
 
    End
 
-   ' ── FONT TOOLS ───────────────────────────────────────────
    Begin {6E182020-7FEC-11CE-9BD9-0000E202599C} fraFont
       Caption      =   "Font Tools"
       Height       =   840
       Left         =   60
       TabIndex     =   15
-      Top          =   5820
+      Top          =   6660
       Width        =   3840
 
       Begin {8BD21D10-EC42-11CE-9E0D-00AA006002F3} txtHeaderFont
@@ -178,13 +203,12 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} ToolsPanel
 
    End
 
-   ' ── SETTINGS ─────────────────────────────────────────────
    Begin {6E182020-7FEC-11CE-9BD9-0000E202599C} fraSettings
       Caption      =   "Settings"
       Height       =   600
       Left         =   60
       TabIndex     =   18
-      Top          =   6720
+      Top          =   7560
       Width        =   3840
 
       Begin {978C9E23-D4B0-11CE-BF2D-00AA003F40D0} lblModel
@@ -207,13 +231,12 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} ToolsPanel
 
    End
 
-   ' ── RESULTS ──────────────────────────────────────────────
    Begin {6E182020-7FEC-11CE-9BD9-0000E202599C} fraResults
       Caption      =   "Results"
       Height       =   2280
       Left         =   60
       TabIndex     =   21
-      Top          =   7380
+      Top          =   8220
       Width        =   3840
 
       Begin {8BD21D20-EC42-11CE-9E0D-00AA006002F3} lstResults
@@ -245,6 +268,7 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} ToolsPanel
    End
 
 End
+
 Attribute VB_Name = "ToolsPanel"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
@@ -272,7 +296,7 @@ Private m_Results() As ResultItem
 Private m_ResultCount As Integer
 Private m_ServerDir As String
 
-' ── Initialise ───────────────────────────────────────────────
+' -- Initialise -----------------------------------------------
 Private Sub UserForm_Initialize()
     ' Read server directory from config file (written by setup.bat)
     m_ServerDir = ReadConfigValue("server", "path")
@@ -322,26 +346,26 @@ Private Sub UserForm_Initialize()
     UpdateServerStatus
 End Sub
 
-' ── Server status indicator ───────────────────────────────────
+' -- Server status indicator -----------------------------------
 Private Sub UpdateServerStatus()
     If IsServerRunning() Then
         lblStatus.Caption = "  Server online"
         lblStatus.ForeColor = &H8000&    ' dark green
     Else
-        lblStatus.Caption = "  Server offline — starting..."
+        lblStatus.Caption = "  Server offline -- starting..."
         lblStatus.ForeColor = &H808080&  ' grey
         EnsureServerRunning m_ServerDir
         If IsServerRunning() Then
             lblStatus.Caption = "  Server online"
             lblStatus.ForeColor = &H8000&
         Else
-            lblStatus.Caption = "  Server offline — run: npm start in ai-server/"
+            lblStatus.Caption = "  Server offline -- run: npm start in ai-server/"
             lblStatus.ForeColor = &HFF&  ' red
         End If
     End If
 End Sub
 
-' ── Helpers ───────────────────────────────────────────────────
+' -- Helpers ---------------------------------------------------
 Private Function SelectedModel() As String
     Select Case cmbModel.ListIndex
         Case 0: SelectedModel = "gpt-4o-mini"
@@ -395,7 +419,22 @@ Private Sub AddResult(ByVal displayText As String, _
     If canApply Then btnApply.Enabled = True
 End Sub
 
-' ── TEXT TOOLS ────────────────────────────────────────────────
+' -- ADAPTER BUTTONS -------------------------------------------
+
+Private Sub btnSendToAI_Click()
+    SetBusy "Sending selection to AI app"
+    ClearResults
+    SendSelection   ' defined in ApiClient.bas -> delegates to ShapeSerializer.bas
+    UpdateServerStatus
+End Sub
+
+Private Sub btnApplyFromAI_Click()
+    SetBusy "Applying result from AI app"
+    ApplyResult     ' defined in ApiClient.bas -> delegates to ShapeDeserializer.bas
+    UpdateServerStatus
+End Sub
+
+' -- TEXT TOOLS ------------------------------------------------
 
 Private Sub btnGrammar_Click()
     Dim text As String
@@ -440,7 +479,7 @@ Private Sub btnGrammar_Click()
             Dim exp As String:  exp  = JsonGetString(items(i), "explanation")
             Dim typ As String:  typ  = JsonGetString(items(i), "type")
             If Len(orig) > 0 And Len(sug) > 0 Then
-                AddResult "[" & UCase(Left(typ, 1)) & "] """ & orig & """ → """ & sug & """  (" & exp & ")", _
+                AddResult "[" & UCase(Left(typ, 1)) & "] """ & orig & """ -> """ & sug & """  (" & exp & ")", _
                           orig, sug, True
             End If
         End If
@@ -490,7 +529,7 @@ Private Sub btnPriceFormat_Click()
             Dim sug As String:  sug  = JsonGetString(items(i), "suggestion")
             Dim exp As String:  exp  = JsonGetString(items(i), "explanation")
             If Len(orig) > 0 Then
-                AddResult "[PRICE] """ & orig & """ → """ & sug & """  (" & exp & ")", _
+                AddResult "[PRICE] """ & orig & """ -> """ & sug & """  (" & exp & ")", _
                           orig, sug, (Len(sug) > 0)
             End If
         End If
@@ -609,7 +648,7 @@ Private Sub btnTranslate_Click()
     UpdateServerStatus
 End Sub
 
-' ── IMAGE & COLOR TOOLS ───────────────────────────────────────
+' -- IMAGE & COLOR TOOLS ---------------------------------------
 
 Private Sub btnGenerateImage_Click()
     Dim prompt As String
@@ -762,7 +801,7 @@ exportFail:
     MsgBox "Could not export bitmap: " & Err.Description, vbExclamation
 End Sub
 
-' ── FONT TOOLS ────────────────────────────────────────────────
+' -- FONT TOOLS ------------------------------------------------
 
 Private Sub btnFontPairing_Click()
     Dim font As String
@@ -809,7 +848,7 @@ Private Sub btnFontPairing_Click()
     UpdateServerStatus
 End Sub
 
-' ── RESULTS ACTIONS ───────────────────────────────────────────
+' -- RESULTS ACTIONS -------------------------------------------
 
 Private Sub btnApply_Click()
     Dim idx As Integer
