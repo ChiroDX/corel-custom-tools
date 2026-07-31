@@ -787,8 +787,10 @@ export default function App() {
           </span>
         </button>
 
-        {/* WS indicator */}
-        <span style={{ marginLeft: 'auto', color: wsConnected ? '#a0a0a0' : '#777', fontSize: 10 }}>
+        {/* WS indicator.
+            #777 on the #1a1a1a header is only 3.9:1 — below AA for text — so the
+            disconnected state uses the same muted grey as the rest of the panel. */}
+        <span style={{ marginLeft: 'auto', color: wsConnected ? '#a0a0a0' : '#9a9a9a', fontSize: 10 }}>
           <span aria-hidden="true">{wsConnected ? '◉ live' : '○ disconnected'}</span>
           <span className="visually-hidden">
             {wsConnected ? 'Live updates connected' : 'Live updates disconnected'}
@@ -802,7 +804,9 @@ export default function App() {
       </header>
 
       {/* ── Scrollable content ───────────────────────────── */}
-      <main style={{ flex: 1, overflowY: 'auto' }}>
+      {/* aria-busy tells assistive tech the tools are mid-request; the buttons
+          are already disabled, but that alone reads as "unavailable". */}
+      <main aria-busy={loading} style={{ flex: 1, overflowY: 'auto' }}>
 
         {/* SELECTION — live from CorelDraw */}
         <Section title="Selection" count={session?.payload?.shapes?.length ?? null}>
