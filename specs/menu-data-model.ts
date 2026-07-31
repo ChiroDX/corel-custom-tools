@@ -44,18 +44,21 @@ export interface Additive {
 // 3. PRICING & CUSTOMIZATION (MODIFIERS)
 // ==========================================
 
+/** Amount in euros, e.g. 9.5 for 9,50 €. */
+export type Price = number;
+
 export interface PriceOption {
   variantName: string; // e.g., "0,33 L", "Tofu", "Standard"
-  price: number;
-  allergens?: AllergenCode[]; // Use when "Tofu" variant has different allergens than "Chicken"
-  additives?: AdditiveCode[]; // Specific additives for this variant
+  price: Price;
+  allergens?: readonly AllergenCode[]; // Use when "Tofu" differs from "Chicken"
+  additives?: readonly AdditiveCode[]; // Specific additives for this variant
 }
 
 export interface MenuModifier {
   name: string; // e.g., "Pfand / deposit", "Extra Sauce", "Ohne Koriander"
-  price: number; // 0.25, or 0.00 for free removals
-  allergens?: AllergenCode[];
-  additives?: AdditiveCode[];
+  price: Price; // 0.25, or 0.00 for free removals
+  allergens?: readonly AllergenCode[];
+  additives?: readonly AdditiveCode[];
 }
 
 export interface ModifierGroup {
@@ -69,6 +72,11 @@ export interface ModifierGroup {
 // 4. THE MAIN DATA MODELS (ITEMS & CATEGORIES)
 // ==========================================
 
+export type DietaryPreference = "Vegan" | "Vegetarian" | "Halal" | "Gluten-Free";
+
+/** German VAT rates: 7 % on food, 19 % on drinks and dine-in. */
+export type TaxRate = 7 | 19;
+
 export interface MenuItem {
   id: string; // Unique identifier (UUID or stable string like "coca-cola")
   number?: string; // e.g. "14", "M1" (Optional)
@@ -77,17 +85,18 @@ export interface MenuItem {
   image?: string; // URL or local path to the image
 
   // Pricing Strategy
-  prices: PriceOption[]; // Replaces standard single `price`
-  modifierGroups?: ModifierGroup[]; // Handles Add-ons, Pfand, Extras
+  /** At least one entry; a single-price item has one "Standard" variant. */
+  prices: readonly [PriceOption, ...PriceOption[]];
+  modifierGroups?: readonly ModifierGroup[]; // Add-ons, Pfand, Extras
 
   // Legal & Compliance
-  allergens?: AllergenCode[];
-  additives?: AdditiveCode[];
-  dietaryPreference?: ("Vegan" | "Vegetarian" | "Halal" | "Gluten-Free")[];
-  taxRate?: 7 | 19; // Crucial for German receipts (Food vs Drink/Dine-in)
+  allergens?: readonly AllergenCode[];
+  additives?: readonly AdditiveCode[];
+  dietaryPreference?: readonly DietaryPreference[];
+  taxRate?: TaxRate;
 
   // Marketing & System
-  tags?: string[]; // e.g., ["Spicy", "Bestseller", "New"]
+  tags?: readonly string[]; // e.g., ["Spicy", "Bestseller", "New"]
   available?: boolean; // Defaults to true; easily disable sold-out items
 }
 

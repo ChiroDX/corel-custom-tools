@@ -1,5 +1,5 @@
 /**
- * ChiroDX Shape Exchange Format  v1.0
+ * ChiroDX Shape Exchange Format  v1.1
  * ─────────────────────────────────────
  * Canonical TypeScript spec for the JSON payload that travels between
  * CorelDraw (VBA) ↔ ai-server ↔ Electron app.
@@ -9,6 +9,16 @@
  * The Electron app reads it and displays it.
  * After processing, the Electron app writes a modified copy back.
  * VBA reads that copy and applies it to the live document.
+ *
+ * Implemented by:
+ *   Makros/modules/ShapeSerializer.bas    — produces ShapeExchange
+ *   Makros/modules/ShapeDeserializer.bas  — consumes ShapeResult
+ *   ai-server/routes/corel.js             — the REST + WebSocket surface
+ *   ai-server/corel-state.js              — the session store
+ *   chiroDX-app/src/App.jsx               — renders SessionDetail
+ *
+ * The server validates sessionId against /^[A-Za-z0-9_-]{1,64}$/ and caps a
+ * push at 500 shapes; anything else is a 400.
  */
 
 // ── Top-level envelope ────────────────────────────────────────────────────────
@@ -69,12 +79,14 @@ export interface ShapeData {
   children?: ShapeData[];
 }
 
+export type BoundsUnit = 'mm' | 'in' | 'px';
+
 export interface Bounds {
   x: number;    // left edge
   y: number;    // bottom edge (CorelDraw uses bottom-left origin)
   w: number;    // width
   h: number;    // height
-  unit: 'mm' | 'in' | 'px';
+  unit: BoundsUnit;
 }
 
 // ── Paragraph ─────────────────────────────────────────────────────────────────
@@ -126,17 +138,27 @@ export interface RunData {
   colorCMYK?: [number, number, number, number];
 }
 
-// ── Result envelope (server → VBA apply) ─────────────────────────────────────
+// ── Session lifecycle ─────────────────────────────────────────────────────────
 
 /**
- * What the Electron app / server posts to /corel/result after processing.
+ * pending    VBA pushed a selection, nothing has come back yet
+ * ready      a result has been posted and is waiting for VBA to collect it
+ * applied    VBA confirmed it wrote the result into the document
+ * cancelled  the user dismissed the session in the panel
+ *
+ * Sessions expire after 30 minutes and the store keeps at most 200 of them,
+ * evicting the oldest — see ai-server/corel-state.js.
+ */
+export type SessionStatus = 'pending' | 'ready' | 'applied' | 'cancelled';
+
+// ── Result envelope (Electron → server → VBA apply) ──────────────────────────
+
+/**
+ * What the Electron app posts to POST /corel/result after processing.
  * Only the fields that changed need to be present; VBA merges them in.
  */
 export interface ShapeResult {
   sessionId: string;
-
-  /** Status set by the Electron app once the user is satisfied */
-  status: 'pending' | 'ready' | 'applied' | 'cancelled';
 
   /**
    * Modified shapes. Only shapes that actually changed need to be included.
@@ -145,6 +167,54 @@ export interface ShapeResult {
   shapes: ShapeData[];
 }
 
+// ── REST responses ────────────────────────────────────────────────────────────
+
+/** Every ai-server endpoint answers with `ok`, and with `error` when it fails. */
+export interface ApiError {
+  ok: false;
+  error: string;
+}
+
+/**
+ * Session metadata without the shape payload.
+ * Returned by GET /corel/selection and GET /corel/sessions.
+ */
+export interface SessionSummary {
+  sessionId: string;
+  status: SessionStatus;
+  shapeCount: number;
+  documentName: string;
+  pageNumber: number;
+  /** ISO timestamp VBA stamped on the push */
+  sentAt: string;
+  /** Epoch milliseconds, maintained by the server (not ISO strings) */
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** GET /corel/selection/:sessionId — summary plus the shapes themselves. */
+export interface SessionDetail extends SessionSummary {
+  payload: ShapeExchange;
+}
+
+export type SelectionResponse =
+  | { ok: true; session: SessionDetail }
+  | ApiError;
+
+export type LatestSelectionResponse =
+  | { ok: true; session: SessionSummary | null }
+  | ApiError;
+
+/**
+ * GET /corel/result/:sessionId — what VBA polls.
+ * A missing session answers HTTP 200 with ok:false, because VBA treats any
+ * non-200 as "server unreachable" and would abandon the poll loop.
+ */
+export type ResultPollResponse =
+  | { ok: true; status: 'ready'; sessionId: string; shapes: ShapeData[] }
+  | { ok: true; status: Exclude<SessionStatus, 'ready'>; shapes: [] }
+  | { ok: false; status: ''; error: string };
+
 // ── WebSocket event payloads ──────────────────────────────────────────────────
 
 export type WsEventType =
@@ -152,16 +222,25 @@ export type WsEventType =
   | 'result-ready'        // Electron app marked result as ready to apply
   | 'result-applied'      // VBA confirmed it applied the result
   | 'session-expired'     // Server cleaned up an old session
-  | 'corel-connected'     // VBA came online
+  | 'corel-connected'     // sent to each client on connect
   | 'corel-disconnected'; // VBA went offline (inferred from timeout)
 
-export interface WsEvent {
-  event: WsEventType;
-  sessionId?: string;
-  /** Quick summary for the Electron status bar — no need to fetch full payload */
-  summary?: {
-    shapeCount: number;
-    documentName: string;
-    pageNumber: number;
-  };
+/** Quick summary for the status bar — saves fetching the full payload. */
+export interface WsSelectionSummary {
+  shapeCount: number;
+  documentName: string;
+  pageNumber: number;
 }
+
+/**
+ * Discriminated on `event`, so a consumer that narrows on the event name gets
+ * exactly the fields that event carries — `sessionId` is not optional on the
+ * events that always have one.
+ */
+export type WsEvent =
+  | { event: 'selection-changed'; sessionId: string; summary: WsSelectionSummary }
+  | { event: 'result-ready'; sessionId: string }
+  | { event: 'result-applied'; sessionId: string }
+  | { event: 'session-expired'; sessionId: string }
+  | { event: 'corel-connected' }
+  | { event: 'corel-disconnected' };
