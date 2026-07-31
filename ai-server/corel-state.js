@@ -115,13 +115,6 @@ export function cancelSession(sessionId) {
 }
 
 /**
- * Delete a session entirely.
- */
-export function deleteSession(sessionId) {
-  return sessions.delete(sessionId);
-}
-
-/**
  * List all active sessions (non-expired, non-applied, non-cancelled).
  */
 export function listSessions() {
