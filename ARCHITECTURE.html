@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CorelDraw AI Plugin — Architecture & Feasibility</title>
+<title>ChiroDX Tools — Architecture</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f1117; color: #e2e8f0; line-height: 1.6; }
@@ -128,96 +128,158 @@
 <body>
 <div class="page">
 
-  <h1>CorelDraw AI Plugin</h1>
-  <p class="subtitle">Feasibility Audit · Architecture Design · Implementation Roadmap</p>
+  <h1>ChiroDX Tools for CorelDRAW</h1>
+  <p class="subtitle">System architecture · Component responsibilities · Data flow · Where the project stands</p>
 
-  <!-- VERDICT SECTION -->
-  <h2>Current Code Verdict</h2>
+  <!-- COMPONENTS -->
+  <h2>The Four Components</h2>
   <div class="verdict-grid">
 
     <div class="verdict-card card-keep">
-      <div class="label">✅ Keep — Active</div>
-      <h3>corel-custom-tools</h3>
-      <p>Your main repo. VBA macros, UserForm, JS scripts and templates. Last touched Dec 2025. This is the one to build on.</p>
-    </div>
-
-    <div class="verdict-card card-warn">
-      <div class="label">⚠ Merged — Needs Redesign</div>
-      <h3>ai-server (from chatgpt-corel)</h3>
-      <p>Functional prototype with a single hardcoded use case (German menu formatter). The <em>architecture is correct</em> but the server needs to become general-purpose.</p>
-    </div>
-
-    <div class="verdict-card card-dead">
-      <div class="label">🗑 Delete — 100% Duplicate</div>
-      <h3>CorelTemplates</h3>
-      <p>Byte-for-byte identical to <code>corel-custom-tools/Templates/</code>. Last commit April 2023. Zero unique content. Safe to delete.</p>
+      <div class="label">Runs inside CorelDRAW</div>
+      <h3>Makros/ — VBA</h3>
+      <p><code>ApiClient.bas</code> owns HTTP, auto-start and the <code>Ping</code> liveness sub. <code>ShapeSerializer.bas</code> turns a selection into ShapeExchange JSON; <code>ShapeDeserializer.bas</code> writes a result back. <code>ToolsPanel.frm</code> is the in-CorelDRAW UserForm.</p>
     </div>
 
     <div class="verdict-card card-info">
-      <div class="label">📦 Separate Project</div>
-      <h3>chiro-dx-erp</h3>
-      <p>Next.js + Hasura ERP app. Nothing to do with CorelDraw. Move to its own folder on your computer.</p>
+      <div class="label">Local service</div>
+      <h3>ai-server/ — Node + Express 5</h3>
+      <p>ESM, Node ≥ 20.6. Text, image and CorelDRAW-adapter routes, an in-memory session store, a WebSocket event stream, and a provider abstraction over OpenAI, Anthropic and Ollama. Binds to <code>127.0.0.1</code>.</p>
+    </div>
+
+    <div class="verdict-card card-info">
+      <div class="label">What the designer clicks</div>
+      <h3>chiroDX-app/ — Electron 43 + React 19</h3>
+      <p>A narrow always-on-top panel built with Vite 8. Sandboxed renderer, <code>contextBridge</code>-only IPC. It spawns the server on launch and drives CorelDRAW back through a COM bridge.</p>
+    </div>
+
+    <div class="verdict-card card-warn">
+      <div class="label">Fallback</div>
+      <h3>Makros/ChiroDXTools.hta</h3>
+      <p>A plain HTA panel that <code>setup.bat</code> copies to the config folder. It is what you double-click when Node or the Electron app will not start. Not the primary UI.</p>
     </div>
 
   </div>
 
   <hr>
 
-  <!-- AUDIT TABLE -->
-  <h2>Code Quality Audit</h2>
+  <!-- ARCHITECTURE DIAGRAM -->
+  <h2>Architecture</h2>
+  <div class="diagram">
+    <div class="diagram-box">
+
+      <div class="arch-corel">
+        <div class="arch-corel-label">CorelDRAW 2024 — Windows</div>
+        <div class="corel-inner">
+          <div class="canvas-mock">
+            <div class="canvas-mock-cross"></div>
+            <span>Drawing Canvas — the live selection</span>
+          </div>
+          <div class="chat-panel">
+            <div class="chat-header">ChiroDX Tools — Electron panel</div>
+            <div class="chat-history">
+              <div class="chat-msg-ai">Selection · 4 shapes · page 1</div>
+              <div class="chat-msg-user">Grammar Check</div>
+              <div class="chat-msg-ai">"Öffnungzeiten" → "Öffnungszeiten"</div>
+            </div>
+            <div class="chat-actions">
+              <div class="chat-action-btn">Apply in CorelDraw</div>
+              <div class="chat-action-btn">Copy</div>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:12px; color:#4b5563; margin-top:12px; text-align:center;">
+          VBA <code style="color:#60a5fa;">MSXML2.ServerXMLHTTP</code> → localhost:3000 &nbsp;·&nbsp;
+          Electron → <code style="color:#60a5fa;">run-macro.ps1</code> → GMSManager.RunMacro (COM)
+        </div>
+      </div>
+
+      <div class="arrow-down">
+        <span class="arrow-label">HTTP + WebSocket · 127.0.0.1:3000</span>
+      </div>
+
+      <div class="services-row">
+        <div class="service-box highlight">
+          <div class="service-label">Local Node.js service</div>
+          <div class="service-name">ai-server</div>
+          <ul class="endpoint-list">
+            <li><span class="method">GET</span> <span>/health</span></li>
+            <li><span class="method">POST</span> <span>/text/grammar · completeness · translate</span></li>
+            <li><span class="method">POST</span> <span>/text/price-format · font-pairing</span></li>
+            <li><span class="method">POST</span> <span>/image/generate · color-palette</span></li>
+            <li><span class="method">POST</span> <span>/corel/push · result</span></li>
+            <li><span class="method">GET</span> <span>/corel/selection · sessions · result</span></li>
+            <li><span class="method">WS</span> <span>/corel/events</span></li>
+          </ul>
+        </div>
+        <div class="service-box">
+          <div class="service-label">Model providers</div>
+          <div class="service-name">OpenAI · Anthropic · Ollama</div>
+          <ul class="endpoint-list">
+            <li><span class="method">POST</span> <span>chat.completions — gpt-4o, gpt-4o-mini</span></li>
+            <li><span class="method">POST</span> <span>messages — claude-haiku-4-5</span></li>
+            <li><span class="method">POST</span> <span>images.generate — DALL-E 3</span></li>
+            <li><span class="method">POST</span> <span>localhost:11434/api/chat — Ollama</span></li>
+          </ul>
+          <div style="margin-top:12px; font-size:12px; color:#4b5563;">
+            Keys read from<br><code style="color:#fbbf24;">ai-server/.env</code> — gitignored, and
+            excluded from the packaged build
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- SESSION LIFECYCLE -->
+  <h2>Session Lifecycle</h2>
   <table class="audit-table">
     <thead>
-      <tr>
-        <th>File</th>
-        <th>Status</th>
-        <th>Issues Found</th>
-      </tr>
+      <tr><th>Step</th><th>Actor</th><th>What happens</th></tr>
     </thead>
     <tbody>
       <tr>
-        <td><code>Makros/Watermark.js</code></td>
-        <td><span class="badge badge-green">Good</span></td>
-        <td>
+        <td><code>pending</code></td>
+        <td><span class="badge badge-green">VBA</span></td>
+        <td class="param-list">
           <ul class="issue-list ok-list">
-            <li>Clean, readable, well-commented</li>
-            <li>Uses modern CorelDraw JS API correctly</li>
+            <li><code>SendSelection</code> serializes the selection and POSTs <code>/corel/push</code></li>
+            <li>Server stores the session and broadcasts <code>selection-changed</code></li>
+            <li>Panel fetches <code>/corel/selection/:id</code> and renders the shapes</li>
           </ul>
         </td>
       </tr>
       <tr>
-        <td><code>Makros/ResponseModal.frm</code></td>
-        <td><span class="badge badge-yellow">Incomplete</span></td>
-        <td>
-          <ul class="issue-list">
-            <li>Caption still reads "UserForm1" — never renamed</li>
-            <li>Zero VBA code in the .frm (hidden in binary .gms)</li>
-            <li>Modal only — blocks CorelDraw while open</li>
-            <li>No chat history, no input field, likely just a text box</li>
+        <td><code>ready</code></td>
+        <td><span class="badge badge-green">Panel</span></td>
+        <td class="param-list">
+          <ul class="issue-list ok-list">
+            <li>Designer runs a tool; the result is POSTed to <code>/corel/result</code></li>
+            <li>Server broadcasts <code>result-ready</code></li>
           </ul>
         </td>
       </tr>
       <tr>
-        <td><code>ai-server/server.js</code></td>
-        <td><span class="badge badge-yellow">Prototype</span></td>
-        <td>
-          <ul class="issue-list">
-            <li>Prompt is hardcoded (only does menu text correction)</li>
-            <li>No general <code>/chat</code> endpoint</li>
-            <li>No <code>/health</code> endpoint (can't check if server is running)</li>
-            <li>No CORS headers (blocks browser-based calls)</li>
-            <li>Crashes silently if OPENAI_API_KEY is missing</li>
-            <li>No conversation history / context window support</li>
+        <td><code>applied</code></td>
+        <td><span class="badge badge-green">VBA</span></td>
+        <td class="param-list">
+          <ul class="issue-list ok-list">
+            <li><code>ApplyResult</code> — pressed in CorelDRAW, or triggered from the panel over COM</li>
+            <li>VBA GETs <code>/corel/result/:id</code>, merges shapes by <code>shapeId</code></li>
+            <li>POSTs <code>/corel/result/:id/applied</code>; server broadcasts <code>result-applied</code></li>
           </ul>
         </td>
       </tr>
       <tr>
-        <td><code>CustomMacroStorage.gms</code></td>
-        <td><span class="badge badge-yellow">Black Box</span></td>
-        <td>
+        <td><code>cancelled</code></td>
+        <td><span class="badge badge-yellow">Either</span></td>
+        <td class="param-list">
           <ul class="issue-list">
-            <li>Binary format — cannot review code in git diff</li>
-            <li>All logic is locked inside the binary</li>
-            <li>Consider exporting VBA modules as plain .bas/.frm files</li>
+            <li>Dismissed from the panel, or evicted by the 30-minute sweep</li>
+            <li>Store keeps at most 200 sessions and evicts the oldest</li>
+            <li>Everything is in memory — a server restart drops all sessions</li>
           </ul>
         </td>
       </tr>
@@ -226,195 +288,180 @@
 
   <hr>
 
-  <!-- PATH COMPARISON -->
-  <h2>Two Valid Implementation Paths</h2>
+  <!-- DESIGN DECISIONS -->
+  <h2>Two Decisions Worth Knowing</h2>
   <div class="path-grid">
 
     <div class="path-card recommended">
-      <div class="recommended-badge">Recommended for You</div>
-      <h3>Path A — VBA + Local Server</h3>
-      <div class="tech">VBA (built-in) + Node.js + OpenAI API</div>
+      <div class="recommended-badge">What shipped</div>
+      <h3>Electron panel + local server</h3>
+      <div class="tech">Electron 43 · React 19 · Vite 8 · Express 5 · VBA</div>
       <ul class="pro-list">
-        <li>No extra tools — VBA is already in CorelDraw</li>
-        <li>You already have 80% of it built</li>
-        <li>Server auto-starts via VBA <code>Shell()</code> command</li>
-        <li>Non-modal UserForm = persistent panel (works!)</li>
-        <li>Easy to maintain and extend</li>
-        <li>Works on any Windows machine with Node.js</li>
+        <li>Real UI: live selection view, results list, keyboard reachable</li>
+        <li>VBA stays thin — serialize, POST, deserialize</li>
+        <li>Async everywhere, so CorelDRAW never blocks on an AI call</li>
+        <li>Panel can drive CorelDRAW back via COM, no window switching</li>
+        <li>Server is reusable by the HTA fallback and by any other client</li>
       </ul>
       <ul class="con-list">
-        <li>Not a true "Docker" panel (floats, not docked)</li>
-        <li>Requires Node.js installed on machine</li>
-        <li>VBA HTTP calls are synchronous (UI brief freeze)</li>
+        <li>Floats above CorelDRAW; it is not a docked VSTA panel</li>
+        <li>Needs Node.js on the machine</li>
+        <li>Three moving parts to install rather than one</li>
       </ul>
     </div>
 
     <div class="path-card">
-      <h3>Path B — VSTA C# Docker</h3>
-      <div class="tech">C# + .NET + Visual Studio 2019 + WPF/WebView2</div>
+      <h3>VSTA C# docker — not taken</h3>
+      <div class="tech">C# · .NET · Visual Studio 2019 · WebView2</div>
       <ul class="pro-list">
-        <li>True dockable panel — sits alongside Objects, Properties</li>
-        <li>Rich UI — can embed a full web interface (WebView2)</li>
-        <li>Direct async HTTP calls — no UI freezing</li>
-        <li>No external server needed</li>
-        <li>Professional, polished result</li>
+        <li>Truly dockable next to Objects and Properties</li>
+        <li>No separate server process to install or supervise</li>
       </ul>
       <ul class="con-list">
-        <li>Requires Visual Studio 2019 (specific version!)</li>
-        <li>C# knowledge needed</li>
-        <li>Much longer development cycle</li>
-        <li>Compiled DLL — harder to quick-edit</li>
-        <li>High setup friction</li>
+        <li>Pinned to one specific Visual Studio version</li>
+        <li>Compiled DLL — no quick edit, slower iteration</li>
+        <li>High setup friction on each designer's PC</li>
+        <li>Would not have removed the need for the VBA side anyway</li>
       </ul>
     </div>
 
   </div>
 
   <p style="font-size:13px; color:#64748b; margin-bottom:48px;">
-    <strong style="color:#fbbf24;">Bottom line:</strong> Path A is achievable now with what you have. Path B is the "dream" version.
-    Start with Path A, migrate to Path B later once you have a working feature set.
+    <strong style="color:#fbbf24;">Trade-off accepted:</strong> a floating panel that ships and can be
+    changed in minutes beat a docked panel that needs a specific toolchain. The server boundary means
+    the front end could still be replaced later without touching the VBA or the model layer.
   </p>
 
   <hr>
 
-  <!-- ARCHITECTURE DIAGRAM -->
-  <h2>End Goal Architecture (Path A)</h2>
-  <div class="diagram">
-    <div class="diagram-box">
-
-      <!-- CorelDraw container -->
-      <div class="arch-corel">
-        <div class="arch-corel-label">CorelDraw 2024 — Windows Application</div>
-        <div class="corel-inner">
-          <div class="canvas-mock">
-            <div class="canvas-mock-cross"></div>
-            <span>Drawing Canvas</span>
-          </div>
-          <div class="chat-panel">
-            <div class="chat-header">
-              🤖 AI Assistant
-            </div>
-            <div class="chat-history">
-              <div class="chat-msg-user">Correct this menu text for me</div>
-              <div class="chat-msg-ai">Sure! Here's the corrected version with proper tabs and superscript allergens...</div>
-              <div class="chat-msg-user">Suggest a color palette for a luxury restaurant</div>
-            </div>
-            <div class="chat-input">
-              <div class="chat-input-mock">Type a message...</div>
-              <button class="chat-send-btn">Send</button>
-            </div>
-            <div class="chat-actions">
-              <div class="chat-action-btn">📋 Use in Canvas</div>
-              <div class="chat-action-btn">📌 New Chat</div>
-            </div>
-          </div>
-        </div>
-        <div style="font-size:12px; color:#4b5563; margin-top:12px; text-align:center;">
-          VBA Macro → <code style="color:#60a5fa;">MSXML2.ServerXMLHTTP</code> → POST to localhost:3000
-        </div>
-      </div>
-
-      <!-- Arrow -->
-      <div class="arrow-down">
-        <span class="arrow-label">HTTP POST localhost:3000/chat</span>
-      </div>
-
-      <!-- Services -->
-      <div class="services-row">
-        <div class="service-box highlight">
-          <div class="service-label">Local Node.js Server</div>
-          <div class="service-name">ai-server</div>
-          <ul class="endpoint-list">
-            <li><span class="method">GET</span> <span>/health</span></li>
-            <li><span class="method">POST</span> <span>/chat</span> <span class="new">NEW</span></li>
-            <li><span class="method">POST</span> <span>/correct-text</span></li>
-            <li><span class="method">POST</span> <span>/suggest-colors</span> <span class="new">FUTURE</span></li>
-            <li><span class="method">POST</span> <span>/describe-selection</span> <span class="new">FUTURE</span></li>
+  <!-- SECURITY POSTURE -->
+  <h2>Security Posture</h2>
+  <table class="audit-table">
+    <thead>
+      <tr><th>Surface</th><th>Status</th><th>Control</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>ai-server</code> network exposure</td>
+        <td><span class="badge badge-green">Loopback</span></td>
+        <td>
+          <ul class="issue-list ok-list">
+            <li>Binds <code>127.0.0.1</code> unless <code>HOST</code> is set deliberately</li>
+            <li>No authentication — endpoints read local files, so it must stay local</li>
+            <li>CORS is open on purpose: the COM host has no origin</li>
           </ul>
-        </div>
-        <div class="service-box">
-          <div class="service-label">OpenAI API</div>
-          <div class="service-name">GPT-4o</div>
-          <ul class="endpoint-list">
-            <li><span class="method">POST</span> <span>/chat/completions</span></li>
+        </td>
+      </tr>
+      <tr>
+        <td>Electron renderer</td>
+        <td><span class="badge badge-green">Isolated</span></td>
+        <td>
+          <ul class="issue-list ok-list">
+            <li><code>contextIsolation: true</code>, <code>nodeIntegration: false</code>, <code>sandbox: true</code></li>
+            <li><code>preload.js</code> exposes named wrappers only — no channel is caller-chosen</li>
+            <li><code>will-navigate</code> and <code>setWindowOpenHandler</code> both deny</li>
+            <li>CSP in <code>index.html</code>; <code>object-src</code>, <code>base-uri</code>, <code>form-action</code> all <code>none</code></li>
           </ul>
-          <div style="margin-top:12px; font-size:12px; color:#4b5563;">
-            API Key stored in<br><code style="color:#fbbf24;">.env</code> (never committed)
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
+        </td>
+      </tr>
+      <tr>
+        <td>IPC arguments</td>
+        <td><span class="badge badge-green">Validated</span></td>
+        <td>
+          <ul class="issue-list ok-list">
+            <li><code>shell.openExternal</code> — <code>http:</code>/<code>https:</code> only, so no <code>file:</code> or handler abuse</li>
+            <li>Reveal-in-Explorer — <code>chiroDX_*</code> inside the OS temp folder only</li>
+            <li>Macro and GMS names must match a strict VBA identifier pattern</li>
+            <li>Clipboard writes capped at 1,000,000 characters</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td>Request input</td>
+        <td><span class="badge badge-green">Bounded</span></td>
+        <td>
+          <ul class="issue-list ok-list">
+            <li>Session IDs restricted to <code>[A-Za-z0-9_-]{1,64}</code></li>
+            <li>Push capped at 500 shapes, body at 10 MB</li>
+            <li>Every upstream model call bounded at 60 s, two retries</li>
+            <li>5xx detail stays on the console; clients get a short message</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><code>CustomMacroStorage.gms</code></td>
+        <td><span class="badge badge-yellow">Opaque</span></td>
+        <td>
+          <ul class="issue-list">
+            <li>Binary — cannot be reviewed in a diff</li>
+            <li>The reviewable logic lives in the exported <code>.bas</code> modules</li>
+            <li>VBA cannot be compiled or tested in CI; changes are verified by hand</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 
   <hr>
 
   <!-- ROADMAP -->
-  <h2>Implementation Roadmap</h2>
+  <h2>Where The Project Stands</h2>
   <div class="roadmap">
 
     <div class="phase">
-      <div class="phase-line">
-        <div class="phase-dot done">✓</div>
-        <div class="phase-connector"></div>
-      </div>
+      <div class="phase-line"><div class="phase-dot done">✓</div><div class="phase-connector"></div></div>
       <div class="phase-content">
-        <div class="phase-title">Phase 1 — Single Repo <span class="phase-tag tag-done">Done</span></div>
-        <div class="phase-desc">Merged chatgpt-corel into corel-custom-tools/ai-server. Added README, .gitignore, .env.example. One clean git repo.</div>
+        <div class="phase-title">Phase 1 — Single repo <span class="phase-tag tag-done">Done</span></div>
+        <div class="phase-desc">chatgpt-corel merged into <code>ai-server/</code>. One repo, one lockfile, <code>.env</code> gitignored.</div>
       </div>
     </div>
 
     <div class="phase">
-      <div class="phase-line">
-        <div class="phase-dot next">2</div>
-        <div class="phase-connector"></div>
-      </div>
+      <div class="phase-line"><div class="phase-dot done">✓</div><div class="phase-connector"></div></div>
       <div class="phase-content">
-        <div class="phase-title">Phase 2 — General AI Server <span class="phase-tag tag-next">Next</span></div>
-        <div class="phase-desc">Redesign server.js with a generic <code>/chat</code> endpoint, conversation history, <code>/health</code> check, CORS headers, and proper error handling for missing API key.</div>
+        <div class="phase-title">Phase 2 — General AI server <span class="phase-tag tag-done">Done</span></div>
+        <div class="phase-desc">Route modules, <code>/health</code>, CORS, a provider abstraction with a model setting, shared validators, and a global error handler that never leaks provider internals. Covered by a <code>node:test</code> suite.</div>
       </div>
     </div>
 
     <div class="phase">
-      <div class="phase-line">
-        <div class="phase-dot next">3</div>
-        <div class="phase-connector"></div>
-      </div>
+      <div class="phase-line"><div class="phase-dot done">✓</div><div class="phase-connector"></div></div>
       <div class="phase-content">
-        <div class="phase-title">Phase 3 — AI Chat UserForm in VBA <span class="phase-tag tag-next">Next</span></div>
-        <div class="phase-desc">Build a proper non-modal UserForm with chat history (ListBox), input field (TextBox), Send button, and a "Use in Canvas" button. VBA auto-starts the server via Shell() on open.</div>
+        <div class="phase-title">Phase 3 — The panel <span class="phase-tag tag-done">Done</span></div>
+        <div class="phase-desc">Built as Electron + React rather than a VBA UserForm. Sections for Selection, Text, Image &amp; Colour, Font and Settings, with a results list. The VBA <code>ToolsPanel.frm</code> and the HTA remain as fallbacks.</div>
       </div>
     </div>
 
     <div class="phase">
-      <div class="phase-line">
-        <div class="phase-dot later">4</div>
-        <div class="phase-connector"></div>
-      </div>
+      <div class="phase-line"><div class="phase-dot done">✓</div><div class="phase-connector"></div></div>
       <div class="phase-content">
-        <div class="phase-title">Phase 4 — Context Awareness <span class="phase-tag tag-later">Later</span></div>
-        <div class="phase-desc">VBA passes the current selection's text/properties to the AI with every message. AI can "see" what's on the canvas and give relevant suggestions.</div>
+        <div class="phase-title">Phase 4 — Context awareness <span class="phase-tag tag-done">Done</span></div>
+        <div class="phase-desc">The full selection travels as structured JSON: shapes, paragraphs, runs, fonts, sizes, colours and bounds. The panel renders it live over a WebSocket, so the tools operate on what is actually selected.</div>
       </div>
     </div>
 
     <div class="phase">
-      <div class="phase-line">
-        <div class="phase-dot later">5</div>
-        <div class="phase-connector"></div>
-      </div>
+      <div class="phase-line"><div class="phase-dot done">✓</div><div class="phase-connector"></div></div>
       <div class="phase-content">
-        <div class="phase-title">Phase 5 — Action Execution <span class="phase-tag tag-later">Later</span></div>
-        <div class="phase-desc">AI responses include structured commands (JSON) that VBA can parse and execute directly — e.g. "apply font X", "change color to CMYK", "create text frame". Closes the loop.</div>
+        <div class="phase-title">Phase 5 — Write-back loop <span class="phase-tag tag-done">Done</span></div>
+        <div class="phase-desc">Results return as <code>ShapeResult</code> and are merged by <code>shapeId</code>. <code>ApplyResult</code> can be triggered from CorelDRAW or from the panel over COM. The loop is closed.</div>
       </div>
     </div>
 
     <div class="phase">
-      <div class="phase-line">
-        <div class="phase-dot later">6</div>
-      </div>
+      <div class="phase-line"><div class="phase-dot next">6</div><div class="phase-connector"></div></div>
       <div class="phase-content">
-        <div class="phase-title">Phase 6 — VSTA Docker (Optional Upgrade) <span class="phase-tag tag-later">Optional</span></div>
-        <div class="phase-desc">Migrate the chat panel to a proper C# VSTA Docker with WebView2 for a fully native, dockable experience. Same backend server, better frontend.</div>
+        <div class="phase-title">Phase 6 — Direct formatting write-back <span class="phase-tag tag-next">Next</span></div>
+        <div class="phase-desc">Today "Apply" for a text fix copies to the clipboard rather than patching the run in place. Applying font, size and colour changes per run — the format the spec already describes — is the next real step.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-line"><div class="phase-dot later">7</div></div>
+      <div class="phase-content">
+        <div class="phase-title">Phase 7 — Auto-layout from data <span class="phase-tag tag-later">Later</span></div>
+        <div class="phase-desc">Generate a laid-out menu from a JSON file matching <code>specs/menu-data-model.ts</code> — text frames, tab stops, superscript allergens, price columns. The largest remaining idea, and the reason that spec exists.</div>
       </div>
     </div>
 

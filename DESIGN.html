@@ -152,60 +152,119 @@
 <div class="page">
 
   <h1>ChiroDX Tools — Design Document</h1>
-  <p class="subtitle">Tool-based AI helper panel for CorelDraw 2024 · Interaction design · API contracts · Implementation notes</p>
+  <p class="subtitle">The panel as built · Interaction design · API contracts · What the hard parts turned out to be</p>
 
   <!-- ════════════════════════════════════════════
-       SECTION 1: The 4 tools
+       SECTION 1: The tools
        ════════════════════════════════════════════ -->
-  <h2>The Four Tools</h2>
+  <h2>The Nine Tools</h2>
   <div class="tools-grid">
 
     <div class="tool-card text">
       <div class="tool-icon">🔤</div>
       <div class="tool-name">Grammar Check</div>
-      <div class="tool-desc">Finds grammar and spelling errors in the selected text object. Returns a list of issues with suggestions.</div>
-      <div class="tool-input">Input: <span>Selected text frame</span></div>
-      <div class="tool-output">Output: <span>Annotated issue list</span></div>
+      <div class="tool-desc">Finds grammar and spelling errors across every text run in the pushed selection. Each issue comes back with the original, a suggestion and a short explanation.</div>
+      <div class="tool-input">Input: <span>Selection text</span></div>
+      <div class="tool-output">Output: <span>Issue list, each copyable</span></div>
       <div style="margin-top:10px">
-        <span class="pill blue">VBA reads selection</span>
-        <span class="pill blue">GPT-4o corrects</span>
+        <span class="pill blue">POST /text/grammar</span>
+        <span class="pill green">Shipped</span>
       </div>
     </div>
 
     <div class="tool-card text">
       <div class="tool-icon">📋</div>
       <div class="tool-name">Completeness Check</div>
-      <div class="tool-desc">Checks if required information is present based on the document type. User selects type from a dropdown first.</div>
-      <div class="tool-input">Input: <span>All text + doc type</span></div>
-      <div class="tool-output">Output: <span>Missing / present fields</span></div>
+      <div class="tool-desc">Checks the required fields for a document type. The type list is fetched from the server, so the dropdown cannot drift out of sync with the server's config.</div>
+      <div class="tool-input">Input: <span>Text + documentType</span></div>
+      <div class="tool-output">Output: <span>Score, missing, optional, notes</span></div>
       <div style="margin-top:10px">
-        <span class="pill blue">Menu</span>
-        <span class="pill blue">Business Card</span>
-        <span class="pill blue">Flyer</span>
+        <span class="pill blue">POST /text/completeness</span>
+        <span class="pill green">Shipped</span>
+      </div>
+    </div>
+
+    <div class="tool-card text">
+      <div class="tool-icon">🌍</div>
+      <div class="tool-name">Translate Selection</div>
+      <div class="tool-desc">Translates the selection into one of eleven languages — DE, EN, FR, ES, IT, NL, PL, TR, AR, ZH, VI.</div>
+      <div class="tool-input">Input: <span>Text + targetLanguage</span></div>
+      <div class="tool-output">Output: <span>translatedText</span></div>
+      <div style="margin-top:10px">
+        <span class="pill blue">POST /text/translate</span>
+        <span class="pill green">Shipped</span>
+      </div>
+    </div>
+
+    <div class="tool-card text">
+      <div class="tool-icon">📐</div>
+      <div class="tool-name">Price Format Check</div>
+      <div class="tool-desc">Flags inconsistent price formatting — mixed decimal separators, mixed currency placement, missing symbols. Very specific, and exactly the mistake that survives proofreading.</div>
+      <div class="tool-input">Input: <span>Selection text</span></div>
+      <div class="tool-output">Output: <span>Outliers with a corrected form</span></div>
+      <div style="margin-top:10px">
+        <span class="pill blue">POST /text/price-format</span>
+        <span class="pill green">Shipped</span>
+      </div>
+    </div>
+
+    <div class="tool-card text">
+      <div class="tool-icon">🔡</div>
+      <div class="tool-name">Font Pairing</div>
+      <div class="tool-desc">Give it the header font you are already using; get body fonts that pair with it, each with a reason and a Google Fonts flag. Uses the same document type as the completeness check.</div>
+      <div class="tool-input">Input: <span>headerFont + documentType</span></div>
+      <div class="tool-output">Output: <span>Suggestions with reasons</span></div>
+      <div style="margin-top:10px">
+        <span class="pill blue">POST /text/font-pairing</span>
+        <span class="pill green">Shipped</span>
       </div>
     </div>
 
     <div class="tool-card image">
       <div class="tool-icon">🎨</div>
       <div class="tool-name">Generate Image</div>
-      <div class="tool-desc">Type a prompt, choose a size, generate via DALL-E 3. The image is downloaded and placed on the CorelDraw canvas.</div>
-      <div class="tool-input">Input: <span>Text prompt + size</span></div>
-      <div class="tool-output">Output: <span>PNG placed on canvas</span></div>
+      <div class="tool-desc">DALL-E 3 from a prompt, in square, portrait or landscape. The PNG is downloaded to the OS temp folder and the panel offers "Show file" to reveal it in Explorer.</div>
+      <div class="tool-input">Input: <span>prompt + size</span></div>
+      <div class="tool-output">Output: <span>localPath, revisedPrompt</span></div>
       <div style="margin-top:10px">
-        <span class="pill purple">DALL-E 3</span>
-        <span class="pill purple">Auto-placed</span>
+        <span class="pill purple">POST /image/generate</span>
+        <span class="pill green">Shipped</span>
       </div>
     </div>
 
     <div class="tool-card image">
-      <div class="tool-icon">✏️</div>
-      <div class="tool-name">Edit Image</div>
-      <div class="tool-desc">Select an image on canvas, describe the change. Uses GPT-4o Vision to describe and DALL-E to regenerate with edits.</div>
-      <div class="tool-input">Input: <span>Selected image + prompt</span></div>
-      <div class="tool-output">Output: <span>New PNG replaces original</span></div>
+      <div class="tool-icon">🖼️</div>
+      <div class="tool-name">Extract Colours from Image</div>
+      <div class="tool-desc">Point it at an image file — a client's logo, say — and get the dominant colours back as hex plus CMYK, ready for CorelDRAW swatches.</div>
+      <div class="tool-input">Input: <span>imagePath</span></div>
+      <div class="tool-output">Output: <span>colors[] with hex, cmyk, name, role</span></div>
       <div style="margin-top:10px">
-        <span class="pill purple">GPT-4o Vision</span>
-        <span class="pill purple">DALL-E 3</span>
+        <span class="pill purple">POST /image/color-palette</span>
+        <span class="pill green">Shipped</span>
+      </div>
+    </div>
+
+    <div class="tool-card image">
+      <div class="tool-icon">🌈</div>
+      <div class="tool-name">Generate Colour Palette</div>
+      <div class="tool-desc">Describe a mood or a cuisine style and get a palette back with the same hex + CMYK shape as the extractor, so both feed one renderer in the panel.</div>
+      <div class="tool-input">Input: <span>description</span></div>
+      <div class="tool-output">Output: <span>colors[] with hex, cmyk, name, role</span></div>
+      <div style="margin-top:10px">
+        <span class="pill purple">POST /image/color-palette-generate</span>
+        <span class="pill green">Shipped</span>
+      </div>
+    </div>
+
+    <div class="tool-card text">
+      <div class="tool-icon">✓</div>
+      <div class="tool-name">Apply in CorelDraw</div>
+      <div class="tool-desc">Not an AI tool — the write-back. Triggers the VBA <code>ApplyResult</code> sub over COM so the designer never has to switch windows. The panel clears the pending state when the <code>result-applied</code> event arrives.</div>
+      <div class="tool-input">Input: <span>Active session</span></div>
+      <div class="tool-output">Output: <span>Shapes merged into the document</span></div>
+      <div style="margin-top:10px">
+        <span class="pill blue">COM · GMSManager.RunMacro</span>
+        <span class="pill green">Shipped</span>
       </div>
     </div>
 
@@ -214,90 +273,103 @@
   <hr>
 
   <!-- ════════════════════════════════════════════
-       SECTION 2: UI Panel mockup
+       SECTION 2: UI Panel
        ════════════════════════════════════════════ -->
-  <h2>Panel UI Design</h2>
+  <h2>Panel UI — As Built</h2>
   <div class="mockup-area">
 
     <div class="mockup-wrap">
       <div class="panel">
 
-        <!-- Title bar -->
         <div class="panel-title-bar">
-          <span>🎨 ChiroDX Tools</span>
+          <span>ChiroDX Tools</span>
           <div class="panel-close">✕</div>
         </div>
 
-        <!-- Server status -->
         <div class="panel-status">
           <div class="status-dot"></div>
-          <span>AI Server running · localhost:3000</span>
+          <span>Server &nbsp;·&nbsp; CorelDraw &nbsp;·&nbsp; ◉ live</span>
         </div>
 
-        <!-- TEXT TOOLS -->
         <div class="panel-section">
-          <div class="section-label">Text Tools</div>
-
-          <button class="tool-btn text-btn">
-            <span class="btn-icon">🔤</span>
-            <span class="btn-label">Grammar Check</span>
-            <span class="btn-key">Ctrl+G</span>
-          </button>
-
-          <div class="select-row">
-            <label>Type:</label>
-            <div class="mock-select">Menu &nbsp;▾</div>
+          <div class="section-label">Selection &nbsp;<span class="pill blue">4</span></div>
+          <div class="result-item info">
+            <div class="result-type">Untitled · page 1 · pending</div>
+            <div class="result-text">📝 "Öffnungzeiten Montag–Freitag"</div>
+            <div class="result-text">✏️ "Tagesgericht 9,50 €"</div>
           </div>
           <button class="tool-btn text-btn">
-            <span class="btn-icon">📋</span>
-            <span class="btn-label">Completeness Check</span>
-            <span class="btn-key">Ctrl+K</span>
+            <span class="btn-icon">✓</span>
+            <span class="btn-label">Apply in CorelDraw</span>
           </button>
         </div>
 
-        <!-- IMAGE TOOLS -->
         <div class="panel-section">
-          <div class="section-label">Image Tools</div>
-
-          <textarea class="prompt-area" placeholder="Describe the image to generate..."></textarea>
-
-          <button class="tool-btn image-btn">
-            <span class="btn-icon">🎨</span>
-            <span class="btn-label">Generate Image</span>
+          <div class="section-label">Text Tools</div>
+          <button class="tool-btn text-btn">
+            <span class="btn-icon">🔤</span><span class="btn-label">Grammar Check</span>
           </button>
-          <button class="tool-btn image-btn">
-            <span class="btn-icon">✏️</span>
-            <span class="btn-label">Edit Selected Image</span>
+          <button class="tool-btn text-btn">
+            <span class="btn-icon">📐</span><span class="btn-label">Price Format Check</span>
+          </button>
+          <div class="select-row">
+            <label>Document type</label>
+            <div class="mock-select">Menu / Speisekarte</div>
+          </div>
+          <button class="tool-btn text-btn">
+            <span class="btn-icon">📋</span><span class="btn-label">Completeness Check</span>
+          </button>
+          <div class="select-row">
+            <label>Translate to</label>
+            <div class="mock-select">German</div>
+          </div>
+          <button class="tool-btn text-btn">
+            <span class="btn-icon">🌍</span><span class="btn-label">Translate Selection</span>
           </button>
         </div>
 
-        <!-- RESULTS -->
+        <div class="panel-section">
+          <div class="section-label">Image &amp; Colour</div>
+          <textarea class="prompt-area" placeholder="Describe the image to generate..."></textarea>
+          <button class="tool-btn image-btn">
+            <span class="btn-icon">🎨</span><span class="btn-label">Generate Image (DALL-E 3)</span>
+          </button>
+          <button class="tool-btn image-btn">
+            <span class="btn-icon">🌈</span><span class="btn-label">Generate Colour Palette</span>
+          </button>
+          <button class="tool-btn image-btn">
+            <span class="btn-icon">🖼️</span><span class="btn-label">Extract Colours from Image</span>
+          </button>
+        </div>
+
+        <div class="panel-section">
+          <div class="section-label">Settings</div>
+          <div class="select-row">
+            <label>AI model</label>
+            <div class="mock-select">GPT-4o Mini</div>
+          </div>
+        </div>
+
         <div class="results-section">
-          <div class="section-label" style="margin-bottom:10px">Results</div>
+          <div class="section-label" style="margin-bottom:10px">Results &nbsp;<span class="pill blue">3</span></div>
 
           <div class="result-item error">
-            <div class="result-type">Grammar Error</div>
+            <div class="result-type">error</div>
             <div class="result-text">"Öffnungzeiten" → "Öffnungszeiten"</div>
             <div class="result-actions">
-              <div class="mini-btn primary">Apply Fix</div>
-              <div class="mini-btn">Dismiss</div>
+              <div class="mini-btn primary">Apply</div>
+              <div class="mini-btn">Copy</div>
             </div>
           </div>
 
           <div class="result-item warn">
-            <div class="result-type">Missing Field</div>
-            <div class="result-text">No telephone number found on this document.</div>
-            <div class="result-actions">
-              <div class="mini-btn">Dismiss</div>
-            </div>
+            <div class="result-type">warning</div>
+            <div class="result-text">Missing: Phone number</div>
           </div>
 
           <div class="result-item info">
-            <div class="result-type">Info</div>
-            <div class="result-text">3 menu items missing allergen info.</div>
-            <div class="result-actions">
-              <div class="mini-btn">Dismiss</div>
-            </div>
+            <div class="result-type">info</div>
+            <div class="result-text">4 of 6 required fields found (67%).</div>
           </div>
 
         </div>
@@ -310,36 +382,43 @@
       <div class="annotation">
         <div class="ann-num">1</div>
         <div class="ann-text">
-          <h4>Server Status Indicator</h4>
-          <p>Shows green/red whether the Node.js AI server is reachable. On open, VBA auto-starts the server in the background using <code>Shell()</code>. If it fails, user sees an error here.</p>
+          <h4>Three status indicators, all clickable</h4>
+          <p>Server (polls <code>/health</code> every 5 s), CorelDraw (COM ping every 10 s), and the WebSocket. Both polls are self-scheduling rather than <code>setInterval</code>, so a slow request cannot pile up a queue — this matters for the COM ping, where each call spawns a PowerShell process. Clicking a status re-checks it immediately.</p>
         </div>
       </div>
       <div class="annotation">
         <div class="ann-num">2</div>
         <div class="ann-text">
-          <h4>Grammar Check</h4>
-          <p>Reads the currently selected text object from the canvas. Sends it to <code>/text/grammar</code>. Results appear below with per-issue Apply Fix buttons.</p>
+          <h4>Selection section — the live document view</h4>
+          <p>Populated by the <code>selection-changed</code> WebSocket event, not by polling. Each shape is an expandable card showing paragraphs, runs, font, size, weight and a colour swatch. This is the panel's answer to "what am I about to send?"</p>
         </div>
       </div>
       <div class="annotation">
         <div class="ann-num">3</div>
         <div class="ann-text">
-          <h4>Document Type Dropdown</h4>
-          <p>Sets the context for the completeness check. Options: Menu, Business Card, Flyer, Poster, Invoice. Each has its own required-fields definition in the server.</p>
+          <h4>Document type comes from the server</h4>
+          <p>Fetched from <code>GET /text/document-types</code> once the server is up, with a hard-coded list as the fallback for a cold start. Hard-coding it is how the dropdown originally drifted away from the server config and started producing 400s.</p>
         </div>
       </div>
       <div class="annotation">
         <div class="ann-num">4</div>
         <div class="ann-text">
-          <h4>Prompt Box (shared)</h4>
-          <p>Used by both image tools. For Generate: a creation prompt. For Edit: a description of the change to make to the selected image.</p>
+          <h4>Stacked sections, not tabs</h4>
+          <p>An earlier design used tabs. With the panel this narrow, scrolling one column beats hunting for which tab holds a tool. Every section is a <code>&lt;section&gt;</code> with a real heading, so screen readers and keyboard users get the same structure the eye does.</p>
         </div>
       </div>
       <div class="annotation">
         <div class="ann-num">5</div>
         <div class="ann-text">
-          <h4>Results Panel</h4>
-          <p>Each result is color-coded: 🔴 Grammar errors, 🟡 Missing fields, 🔵 Info/suggestions. "Apply Fix" for grammar patches the text directly on canvas. There's no auto-apply — you stay in control.</p>
+          <h4>One model setting for all text tools</h4>
+          <p>Not per-tool. Image generation always uses DALL-E 3 regardless. Per-endpoint auto-routing was designed but never built — one visible setting proved easier to reason about than invisible routing rules.</p>
+        </div>
+      </div>
+      <div class="annotation">
+        <div class="ann-num">6</div>
+        <div class="ann-text">
+          <h4>Results are advisory</h4>
+          <p>Colour-coded by type and announced through an <code>aria-live</code> region. Nothing is ever written to the document automatically — "Apply" on a text fix copies to the clipboard, and only "Apply in CorelDraw" touches the document. The designer stays in control.</p>
         </div>
       </div>
     </div>
@@ -355,54 +434,61 @@
   <div class="flow">
 
     <div class="flow-box">
-      <div class="flow-title">CorelDraw Canvas</div>
+      <div class="flow-title">CorelDRAW — VBA</div>
       <ul class="flow-items">
-        <li>Selected text object</li>
-        <li>All text on page</li>
-        <li>Selected image (bitmap)</li>
-        <li>User's prompt text</li>
-        <li>Document type choice</li>
+        <li>Serializes the selection</li>
+        <li>Shapes, paragraphs, runs</li>
+        <li>Font, size, bold, italic</li>
+        <li>RGB and CMYK colour</li>
+        <li>Bounds, layer, shape type</li>
+        <li>Tags shapes with a session id</li>
       </ul>
     </div>
 
     <div class="flow-arrow">
       →
-      <span class="flow-arrow-label">VBA XMLHTTP</span>
-      <span class="flow-arrow-label">localhost:3000</span>
+      <span class="flow-arrow-label">POST /corel/push</span>
+      <span class="flow-arrow-label">ServerXMLHTTP</span>
     </div>
 
     <div class="flow-box">
-      <div class="flow-title">ai-server (Node.js)</div>
+      <div class="flow-title">ai-server</div>
       <ul class="flow-items">
-        <li>Validates request</li>
-        <li>Builds AI prompt</li>
-        <li>Calls OpenAI API</li>
-        <li>Parses JSON response</li>
-        <li>Returns structured data</li>
-        <li>Downloads DALL-E image</li>
-        <li>Saves image to temp path</li>
+        <li>Validates and bounds input</li>
+        <li>Stores the session in memory</li>
+        <li>Broadcasts over WebSocket</li>
+        <li>Builds prompts per tool</li>
+        <li>Routes to the chosen provider</li>
+        <li>Parses the model's JSON</li>
+        <li>Saves images to temp</li>
       </ul>
     </div>
 
     <div class="flow-arrow">
       →
-      <span class="flow-arrow-label">Structured JSON</span>
-      <span class="flow-arrow-label">+ image path</span>
+      <span class="flow-arrow-label">WS selection-changed</span>
+      <span class="flow-arrow-label">GET /corel/selection/:id</span>
     </div>
 
     <div class="flow-box">
-      <div class="flow-title">VBA (back in Corel)</div>
+      <div class="flow-title">Electron panel</div>
       <ul class="flow-items">
-        <li>Parse JSON response</li>
-        <li>Show issues in panel</li>
-        <li>"Apply Fix" patches text</li>
-        <li>Import image to canvas</li>
-        <li>Replace selected image</li>
-        <li>Update status indicator</li>
+        <li>Renders the live selection</li>
+        <li>Runs a tool on demand</li>
+        <li>Shows results, copyable</li>
+        <li>POSTs the result back</li>
+        <li>Triggers ApplyResult over COM</li>
+        <li>Reveals generated files</li>
       </ul>
     </div>
 
   </div>
+
+  <p style="font-size:13px;color:#64748b;margin:-24px 0 48px">
+    The loop closes back in VBA: <code>ApplyResult</code> GETs <code>/corel/result/:id</code>, merges the
+    returned shapes by <code>shapeId</code>, then POSTs <code>/corel/result/:id/applied</code> — which
+    broadcasts <code>result-applied</code> and clears the panel's pending state.
+  </p>
 
   <hr>
 
@@ -410,6 +496,10 @@
        SECTION 4: API Endpoints
        ════════════════════════════════════════════ -->
   <h2>Server API Contract</h2>
+  <p style="font-size:13px;color:#64748b;margin:-8px 0 20px">
+    Every response carries <code>ok</code>; a failure adds <code>error</code>. The authoritative types
+    live in <code>specs/shape-format.ts</code>.
+  </p>
   <table class="endpoint-table">
     <thead>
       <tr>
@@ -425,36 +515,113 @@
         <td><span class="method get">GET</span></td>
         <td class="endpoint-path">/health</td>
         <td class="param-list">—</td>
-        <td class="param-list"><code>{ status: "ok", version: "1.0" }</code></td>
-        <td class="param-list">VBA polls this on panel open to show server status dot.</td>
+        <td class="param-list"><code>{ status, version, models, providers, corelAdapter, endpoints }</code></td>
+        <td class="param-list">Version comes from package.json — it used to be duplicated here and had drifted two majors. Reports which provider keys are configured.</td>
+      </tr>
+      <tr>
+        <td><span class="method get">GET</span></td>
+        <td class="endpoint-path">/text/document-types</td>
+        <td class="param-list">—</td>
+        <td class="param-list"><code>{ ok, documentTypes: [{ key, label, required, optional }] }</code></td>
+        <td class="param-list">The single source of truth for the panel's dropdown.</td>
       </tr>
       <tr>
         <td><span class="method post">POST</span></td>
         <td class="endpoint-path">/text/grammar</td>
-        <td class="param-list"><code>{ text: "..." }</code></td>
-        <td class="param-list"><code>{ issues: [{ original, suggestion, explanation, lineHint }] }</code></td>
-        <td class="param-list">GPT-4o returns structured JSON. Each issue maps to a fix that VBA can apply.</td>
+        <td class="param-list"><code>{ text, model? }</code></td>
+        <td class="param-list"><code>{ ok, issues: [{ original, suggestion, explanation }] }</code></td>
+        <td class="param-list">An empty <code>issues</code> array means clean, not failure.</td>
       </tr>
       <tr>
         <td><span class="method post">POST</span></td>
         <td class="endpoint-path">/text/completeness</td>
-        <td class="param-list"><code>{ text: "...", documentType: "menu" }</code></td>
-        <td class="param-list"><code>{ missing: ["phone", "hours"], present: ["address", "prices"] }</code></td>
-        <td class="param-list">Server has a required-fields config per doc type. AI checks which are present.</td>
+        <td class="param-list"><code>{ text, documentType, model? }</code></td>
+        <td class="param-list"><code>{ ok, score, missingLabels, optional_missing, notes }</code></td>
+        <td class="param-list">An unknown <code>documentType</code> is a 400, not a guess.</td>
+      </tr>
+      <tr>
+        <td><span class="method post">POST</span></td>
+        <td class="endpoint-path">/text/translate</td>
+        <td class="param-list"><code>{ text, targetLanguage, model? }</code></td>
+        <td class="param-list"><code>{ ok, translatedText }</code></td>
+        <td class="param-list">Eleven languages; the code must be one the server knows.</td>
+      </tr>
+      <tr>
+        <td><span class="method post">POST</span></td>
+        <td class="endpoint-path">/text/price-format</td>
+        <td class="param-list"><code>{ text, model? }</code></td>
+        <td class="param-list"><code>{ ok, issues: [{ original, suggestion, explanation }] }</code></td>
+        <td class="param-list">Same issue shape as grammar, so the panel renders both identically.</td>
+      </tr>
+      <tr>
+        <td><span class="method post">POST</span></td>
+        <td class="endpoint-path">/text/font-pairing</td>
+        <td class="param-list"><code>{ headerFont, documentType, model? }</code></td>
+        <td class="param-list"><code>{ ok, suggestions: [{ font, style, reason, googleFonts }] }</code></td>
+        <td class="param-list">Pure text call — the cheapest tool in the set.</td>
       </tr>
       <tr>
         <td><span class="method post">POST</span></td>
         <td class="endpoint-path">/image/generate</td>
-        <td class="param-list"><code>{ prompt: "...", size: "1024x1024" }</code></td>
-        <td class="param-list"><code>{ localPath: "C:\\Temp\\chiroDX_gen_001.png" }</code></td>
-        <td class="param-list">Server calls DALL-E 3, downloads the PNG to a temp folder, returns the Windows path. VBA imports it into CorelDraw.</td>
+        <td class="param-list"><code>{ prompt, size }</code></td>
+        <td class="param-list"><code>{ ok, localPath, revisedPrompt }</code></td>
+        <td class="param-list">Always DALL-E 3. Saved as <code>chiroDX_*</code> in the OS temp folder and swept on server start. The panel allows ~130 s for this call.</td>
       </tr>
       <tr>
         <td><span class="method post">POST</span></td>
-        <td class="endpoint-path">/image/edit</td>
-        <td class="param-list"><code>{ imagePath: "C:\\...", prompt: "make background white" }</code></td>
-        <td class="param-list"><code>{ localPath: "C:\\Temp\\chiroDX_edit_001.png" }</code></td>
-        <td class="param-list">VBA exports the selected bitmap to a temp path, sends the path. Server reads file, calls GPT-4o Vision + DALL-E for the edit.</td>
+        <td class="endpoint-path">/image/color-palette</td>
+        <td class="param-list"><code>{ imagePath }</code></td>
+        <td class="param-list"><code>{ ok, colors: [{ hex, cmyk, name, role }] }</code></td>
+        <td class="param-list">Reads a local file — one of the reasons the server stays on loopback.</td>
+      </tr>
+      <tr>
+        <td><span class="method post">POST</span></td>
+        <td class="endpoint-path">/image/color-palette-generate</td>
+        <td class="param-list"><code>{ description, model? }</code></td>
+        <td class="param-list"><code>{ ok, colors: [{ hex, cmyk, name, role }] }</code></td>
+        <td class="param-list">Same response shape as the extractor, by design.</td>
+      </tr>
+      <tr>
+        <td><span class="method post">POST</span></td>
+        <td class="endpoint-path">/corel/push</td>
+        <td class="param-list"><code>ShapeExchange</code></td>
+        <td class="param-list"><code>{ ok, sessionId }</code></td>
+        <td class="param-list">Capped at 500 shapes. Session ids must match <code>[A-Za-z0-9_-]{1,64}</code>.</td>
+      </tr>
+      <tr>
+        <td><span class="method get">GET</span></td>
+        <td class="endpoint-path">/corel/selection/:sessionId</td>
+        <td class="param-list">—</td>
+        <td class="param-list"><code>{ ok, session: SessionDetail }</code></td>
+        <td class="param-list">Summary plus the full payload. <code>/corel/selection</code> without an id returns just the latest summary.</td>
+      </tr>
+      <tr>
+        <td><span class="method post">POST</span></td>
+        <td class="endpoint-path">/corel/result</td>
+        <td class="param-list"><code>{ sessionId, shapes }</code></td>
+        <td class="param-list"><code>{ ok, sessionId }</code></td>
+        <td class="param-list">No <code>status</code> field — the server derives it. Only changed shapes need to be sent.</td>
+      </tr>
+      <tr>
+        <td><span class="method get">GET</span></td>
+        <td class="endpoint-path">/corel/result/:sessionId</td>
+        <td class="param-list">—</td>
+        <td class="param-list"><code>{ ok, status, shapes }</code></td>
+        <td class="param-list">A missing session answers <strong>HTTP 200</strong> with <code>ok:false</code> — VBA treats any non-200 as "server unreachable" and would abandon its poll loop.</td>
+      </tr>
+      <tr>
+        <td><span class="method post">POST</span></td>
+        <td class="endpoint-path">/corel/result/:sessionId/applied</td>
+        <td class="param-list">—</td>
+        <td class="param-list"><code>{ ok }</code></td>
+        <td class="param-list">Broadcasts <code>result-applied</code>, which is what clears the panel's spinner.</td>
+      </tr>
+      <tr>
+        <td><span class="method get">WS</span></td>
+        <td class="endpoint-path">/corel/events</td>
+        <td class="param-list">—</td>
+        <td class="param-list"><code>WsEvent</code>, discriminated on <code>event</code></td>
+        <td class="param-list">selection-changed · result-ready · result-applied · session-expired · corel-connected · corel-disconnected. The panel reconnects every 3 s if it drops.</td>
       </tr>
     </tbody>
   </table>
@@ -462,76 +629,59 @@
   <hr>
 
   <!-- ════════════════════════════════════════════
-       SECTION 5: Key Technical Challenges
+       SECTION 5: Technical challenges
        ════════════════════════════════════════════ -->
-  <h2>Key Technical Challenges</h2>
+  <h2>The Hard Parts, And What They Became</h2>
   <div class="challenges">
 
     <div class="challenge-card">
-      <div class="challenge-title">⏳ VBA is Synchronous</div>
-      <div class="challenge-body">VBA's <code>MSXML2.XMLHTTP</code> blocks the UI thread while waiting for the API. An AI call can take 3–10 seconds — CorelDraw freezes.</div>
-      <div class="solution">Use <code>MSXML2.ServerXMLHTTP</code> with a short timeout + a "loading" label update trick, or show a progress indicator before the call.</div>
+      <div class="challenge-title">⏳ VBA is synchronous</div>
+      <div class="challenge-body">VBA's <code>XMLHTTP</code> blocks CorelDRAW's UI thread while waiting. An AI call can take 3–10 seconds; a DALL-E call far longer.</div>
+      <div class="solution">Solved by moving the UI out of VBA. VBA only pushes a selection and polls for a result — both fast. Every slow call happens in the Electron panel, which is a separate process and never freezes the canvas.</div>
     </div>
 
     <div class="challenge-card">
-      <div class="challenge-title">🖼 Exporting Bitmaps from VBA</div>
-      <div class="challenge-body">To edit an image, VBA needs to export the selected bitmap to disk as a PNG before sending. CorelDraw's VBA API supports this but needs correct export settings.</div>
-      <div class="solution">Use <code>Shape.Export</code> with <code>cdrPNG</code> filter to save to a temp path, then send that path to the server. Server reads from disk.</div>
+      <div class="challenge-title">📦 JSON in VBA</div>
+      <div class="challenge-body">VBA has no JSON parser, and the exchange format is deeply nested — shapes containing paragraphs containing runs.</div>
+      <div class="solution">The serializer emits JSON by hand; the deserializer only ever reads back a flat, predictable subset. Response shapes were deliberately kept shallow so string operations suffice, and <code>specs/shape-format.ts</code> is the written contract both sides code against.</div>
     </div>
 
     <div class="challenge-card">
-      <div class="challenge-title">📦 JSON Parsing in VBA</div>
-      <div class="challenge-body">VBA has no native JSON parser. The server response is JSON, but VBA can't decode it directly without a library or workaround.</div>
-      <div class="solution">Server returns responses in a simplified format that VBA can parse with basic string operations, or use VBA-JSON (a lightweight open source module).</div>
+      <div class="challenge-title">🚀 Auto-starting the server</div>
+      <div class="challenge-body">Nothing works until the Node service is up, and asking a designer to open a terminal is not an option.</div>
+      <div class="solution">Two belts. <code>setup.bat</code> registers a Task Scheduler job that starts it hidden on login, and the Electron main process also spawns it on launch. The panel polls <code>/health</code> and shows a red dot until it answers.</div>
     </div>
 
     <div class="challenge-card">
-      <div class="challenge-title">🚀 Auto-starting the Server</div>
-      <div class="challenge-body">The Node.js server needs to be running before any tool call. Requiring the user to manually open a terminal is bad UX.</div>
-      <div class="solution">VBA <code>Shell()</code> starts the server silently on panel open. Panel polls <code>/health</code> every 2 seconds until it responds, then turns the dot green.</div>
+      <div class="challenge-title">🔌 Driving CorelDRAW from outside</div>
+      <div class="challenge-body">Once the designer approves a result in the panel, something has to run the VBA that writes it back — without making them switch windows and press a button.</div>
+      <div class="solution"><code>run-macro.ps1</code> calls <code>GMSManager.RunMacro</code> over COM. It also needs a liveness probe: an empty <code>Ping</code> sub whose entire contract is returning without error. Before it existed, the panel showed "CorelDraw offline" permanently.</div>
     </div>
 
     <div class="challenge-card">
-      <div class="challenge-title">✏️ Applying Grammar Fixes</div>
-      <div class="challenge-body">After AI returns a correction, VBA needs to find the exact text string in the CorelDraw text object and replace it — without losing the existing formatting.</div>
-      <div class="solution">Use CorelDraw's <code>FindAndReplaceText</code> or iterate <code>TextRange</code> to find and replace text while preserving character-level formatting (font, size, color).</div>
+      <div class="challenge-title">🎯 Matching shapes across the round trip</div>
+      <div class="challenge-body">A shape leaves CorelDRAW, gets processed elsewhere, and comes back. The document may have changed in between.</div>
+      <div class="solution">Every serialized shape gets a stable <code>shapeId</code> written into its name. On the way back, VBA matches on that id and silently skips anything it can no longer find, rather than guessing by position or content.</div>
     </div>
 
     <div class="challenge-card">
-      <div class="challenge-title">📐 Image Placement on Canvas</div>
-      <div class="challenge-body">After generating an image, it needs to be imported and positioned sensibly on the canvas — not dumped at 0,0 at full size.</div>
-      <div class="solution">Import with <code>ActiveLayer.Import</code>, then center the result using <code>Shape.SetPosition</code> based on the current viewport center or selected object bounds.</div>
+      <div class="challenge-title">🔐 Renderer privileges</div>
+      <div class="challenge-body">An Electron panel that can reach the filesystem and the shell is a large attack surface for what is, after all, a text box that talks to an AI.</div>
+      <div class="solution">Sandboxed renderer with context isolation on and node integration off. The preload exposes named wrappers, never <code>ipcRenderer</code> itself, and every argument is validated in the main process: http(s) URLs only, temp-folder <code>chiroDX_*</code> files only, strict identifier patterns for macro names.</div>
     </div>
 
-  </div>
+    <div class="challenge-card">
+      <div class="challenge-title">🧪 VBA cannot be tested</div>
+      <div class="challenge-body">There is no way to compile or run <code>.bas</code> modules in CI. A broken macro fails silently inside CorelDRAW, often with a modal box the designer has to dismiss.</div>
+      <div class="solution">Not solved — managed. VBA changes are kept small and conservative, the reviewable logic lives in exported <code>.bas</code> files rather than the binary <code>.gms</code>, and anything touching VBA is flagged as unverified until it has been loaded into CorelDRAW by hand.</div>
+    </div>
 
-  <hr>
+    <div class="challenge-card">
+      <div class="challenge-title">✏️ Applying a fix in place</div>
+      <div class="challenge-body">Replacing a text run while preserving character-level formatting is the genuinely hard case, and it is still open.</div>
+      <div class="solution">Currently "Apply" on a text suggestion copies to the clipboard for the designer to paste. Per-run write-back — font, size, colour, and text together — is the next planned step, and the exchange format already carries everything it needs.</div>
+    </div>
 
-  <!-- File structure -->
-  <h2>Resulting File Structure</h2>
-  <div style="background:#141a24; border:1px solid #1e293b; border-radius:10px; padding:24px; font-family:monospace; font-size:13px; color:#94a3b8; line-height:2;">
-    <span style="color:#60a5fa">corel-custom-tools/</span><br>
-    &nbsp;&nbsp;<span style="color:#4ade80">Makros/</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;CustomMacroStorage.gms &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#475569">← VBA project (main entry point)</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;ToolsPanel.frm &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: the panel UserForm</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;ToolsPanel.frx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: panel binary resources</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;ApiClient.bas &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: XMLHTTP wrapper module</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;JsonParser.bas &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: lightweight JSON parser</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;ResponseModal.frm &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#475569">← old modal (keep or retire)</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;Watermark.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#475569">← keep as-is</span><br>
-    &nbsp;&nbsp;<span style="color:#4ade80">ai-server/</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;server.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← REDESIGN: add all endpoints</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;routes/<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: /text/grammar, /text/completeness</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: /image/generate, /image/edit</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;config/<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;documentTypes.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#f59e0b">← NEW: required fields per doc type</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;package.json<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;.env &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#475569">← OPENAI_API_KEY (never committed)</span><br>
-    &nbsp;&nbsp;<span style="color:#4ade80">Templates/</span><br>
-    &nbsp;&nbsp;README.md<br>
-    &nbsp;&nbsp;ARCHITECTURE.html<br>
-    &nbsp;&nbsp;<span style="color:#60a5fa">DESIGN.html &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#475569">← this file</span></span>
   </div>
 
 </div>
